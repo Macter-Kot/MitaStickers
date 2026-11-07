@@ -73,15 +73,21 @@ class MainWindow(tk.Toplevel):
             row=5, column=1, columnspan=2, sticky="w", padx=(10, 0)
         )
 
+        # --- ВЫБОР СТИЛЯ ---
+        tk.Label(self, text="Стиль стикера:", font=("Segoe UI", 10, "bold")).grid(row=6, column=0, sticky="w", pady=(12, 0))
+        self.style_var = tk.StringVar(value="Желтый")
+        style_cb = ttk.Combobox(self, textvariable=self.style_var, values=["Желтый", "Розовый", "Темный"], state="readonly", width=13)
+        style_cb.grid(row=7, column=0, sticky="w")
+
         tk.Checkbutton(
             self,
             text="Добавить в автозагрузку",
             variable=self.autostart_var,
             font=("Segoe UI", 10),
-        ).grid(row=6, column=0, columnspan=3, sticky="w", pady=(12, 0))
+        ).grid(row=8, column=0, columnspan=3, sticky="w", pady=(12, 0))
 
         buttons = tk.Frame(self)
-        buttons.grid(row=7, column=0, columnspan=3, sticky="e", pady=(16, 0))
+        buttons.grid(row=9, column=0, columnspan=3, sticky="e", pady=(16, 0))
         ttk.Button(buttons, text="Отмена", command=self.destroy).pack(side="left", padx=(0, 8))
         ttk.Button(buttons, text="Создать", command=self._create).pack(side="left")
 
@@ -143,6 +149,7 @@ class MainWindow(tk.Toplevel):
             image=image,
             datetime_str=when.strftime(storage.DATETIME_FORMAT),
             status=storage.STATUS_PENDING,
+            style=self.style_var.get(),
         )
 
         if self.autostart_var.get():

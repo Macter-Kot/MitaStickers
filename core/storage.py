@@ -48,7 +48,7 @@ def next_id(stickers=None):
     return max((int(item.get("id", 0)) for item in stickers), default=0) + 1
 
 
-def add_sticker(text, image=None, datetime_str="", status=STATUS_PENDING):
+def add_sticker(text, image=None, datetime_str="", status=STATUS_PENDING, style="Желтый"):
     stickers = load_stickers()
     sticker = {
         "id": next_id(stickers),
@@ -56,6 +56,7 @@ def add_sticker(text, image=None, datetime_str="", status=STATUS_PENDING):
         "image": image,
         "datetime": datetime_str,
         "status": status,
+        "style": style,
     }
     stickers.append(sticker)
     save_stickers(stickers)
