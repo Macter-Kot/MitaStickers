@@ -76,7 +76,7 @@ class MainWindow(tk.Toplevel):
         # --- ВЫБОР СТИЛЯ ---
         tk.Label(self, text="Стиль стикера:", font=("Segoe UI", 10, "bold")).grid(row=6, column=0, sticky="w", pady=(12, 0))
         self.style_var = tk.StringVar(value="Желтый")
-        style_cb = ttk.Combobox(self, textvariable=self.style_var, values=["Желтый", "Розовый", "Темный"], state="readonly", width=13)
+        style_cb = ttk.Combobox(self, textvariable=self.style_var, values=["Желтый", "Розовый", "Фиолетовый"], state="readonly", width=13)
         style_cb.grid(row=7, column=0, sticky="w")
 
         tk.Checkbutton(

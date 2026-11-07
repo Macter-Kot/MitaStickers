@@ -2,20 +2,39 @@ import os
 import tkinter as tk
 
 try:
-    from PIL import Image, ImageTk
+    from PIL import Image, ImageTk, ImageOps
 except ImportError:
     Image = None
     ImageTk = None
+    ImageOps = None
 
 from core import storage
 
 # --- НАСТРОЙКИ ТЕМ (ЦВЕТА) ---
+# "bg"    - базовый (светлый) цвет бумажки
+# "shade" - более тёмный/насыщенный оттенок для градиента в правом нижнем углу
+# "tape"  - цвет скотча сверху
 THEMES = {
-    "Желтый": {"bg": "#FFF9C4", "head": "#FBC02D", "border": "#5D4037", "text": "#212121", "btn": "#4CAF50"},
-    "Розовый": {"bg": "#FCE4EC", "head": "#F06292", "border": "#880E4F", "text": "#212121", "btn": "#4CAF50"},
-    "Темный": {"bg": "#212121", "head": "#424242", "border": "#9C27B0", "text": "#FFFFFF", "btn": "#9C27B0"}
+    "Желтый": {
+        "bg": "#FFF9C4", "shade": "#FFE082", "head": "#FBC02D",
+        "border": "#5D4037", "text": "#212121", "btn": "#4CAF50", "tape": "#FFFFFF",
+    },
+    "Розовый": {
+        "bg": "#FCE4EC", "shade": "#F8BBD0", "head": "#F06292",
+        "border": "#880E4F", "text": "#212121", "btn": "#4CAF50", "tape": "#FFFFFF",
+    },
+    "Фиолетовый": {
+        "bg": "#2E1A47", "shade": "#1A0B2E", "head": "#3D2459",
+        "border": "#D1B3E0", "text": "#FFFFFF", "btn": "#7E57C2", "tape": "#B0A4C4",
+    },
 }
-OVERDUE = {"bg": "#FFEBEE", "head": "#E53935", "border": "#B71C1C", "text": "#212121", "btn": "#D32F2F"}
+# Обратная совместимость со старым названием темы
+THEMES["Темный"] = THEMES["Фиолетовый"]
+
+OVERDUE = {
+    "bg": "#FFCDD2", "shade": "#E57373", "head": "#E53935",
+    "border": "#B71C1C", "text": "#212121", "btn": "#D32F2F", "tape": "#FFFFFF",
+}
 
 IMAGE_MAX_SIZE = (260, 160)
 CHROMA_KEY = "#FF00FF" # Секретный цвет для невидимой зоны скотча
@@ -35,6 +54,7 @@ class StickerWindow(tk.Toplevel):
         self.colors = OVERDUE if is_overdue else THEMES.get(style, THEMES["Желтый"])
         
         self._photo = None
+        self._bg_photo = None
         self._drag_x = 0
         self._drag_y = 0
 
@@ -67,17 +87,22 @@ class StickerWindow(tk.Toplevel):
         self.canvas = tk.Canvas(self, width=w, height=h + Y_OFFSET, bg=CHROMA_KEY, highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
         
-        # 2. Градиент
-        self._draw_gradient(w, h, Y_OFFSET)
-        
-        # 3. Рамка стикера (сдвинута вниз на Y_OFFSET)
-        self.canvas.create_rectangle(2, Y_OFFSET, w-2, h + Y_OFFSET - 2, fill=self.colors["bg"], outline=self.colors["border"], width=3)
+        # 2. Градиентный фон бумажки (PIL) — кладём самым нижним слоем
+        self._bg_photo = self._make_gradient(
+            w - 4, h - 2, self.colors["bg"], self.colors.get("shade", self.colors["bg"])
+        )
+        if self._bg_photo is not None:
+            self.canvas.create_image(2, Y_OFFSET, image=self._bg_photo, anchor="nw")
+            self.canvas.create_rectangle(2, Y_OFFSET, w-2, h + Y_OFFSET - 2, fill="", outline=self.colors["border"], width=3)
+        else:
+            # Резервный вариант, если PIL недоступен
+            self.canvas.create_rectangle(2, Y_OFFSET, w-2, h + Y_OFFSET - 2, fill=self.colors["bg"], outline=self.colors["border"], width=3)
         
         # 4. Шапка (Header)
         self.canvas.create_rectangle(2, Y_OFFSET, w-2, Y_OFFSET + 35, fill=self.colors["head"], outline="")
         
         # 5. СКОТЧ ТОРЧИТ СВЕРХУ (начинается с y=0)
-        tape_color = "#FFFFFF" if self.colors["bg"] != "#212121" else "#757575"
+        tape_color = self.colors.get("tape", "#FFFFFF")
         self.canvas.create_rectangle(w//2 - 25, 0, w//2 + 25, Y_OFFSET + 12, fill=tape_color, outline=self.colors["border"], width=1, stipple="gray50")
         
         # 6. Заголовок
@@ -120,17 +145,39 @@ class StickerWindow(tk.Toplevel):
         btn = tk.Button(self, text="✔ Выполнено", command=self.complete, bg=self.colors["btn"], fg="white", 
                         activebackground="#388E3C" if not self.is_overdue else "#B71C1C", activeforeground="white",
                         relief="flat", font=("Segoe UI", 10, "bold"), cursor="hand2")
-        btn.place(x=2, y=h + Y_OFFSET - 36, width=w-4, height=34)
+        # Кнопка прижата влево, чтобы правый нижний угол бумажки с градиентом был виден
+        btn.place(x=14, y=h + Y_OFFSET - 40, width=150, height=32)
 
-    def _draw_gradient(self, w, h, y_offset):
-        base_color = self.colors["bg"]
-        if base_color == "#FFF9C4": shade = "#FFF59D" 
-        elif base_color == "#FCE4EC": shade = "#F8BBD0" 
-        elif base_color == "#FFEBEE": shade = "#FFCDD2" # <-- Добавил градиент для просрочки!
-        else: return
-            
-        for i in range(40):
-            self.canvas.create_line(w - 60 + i, h + y_offset - 35, w, h + y_offset - 75 + i, fill=shade, width=2)
+    def _make_gradient(self, width, height, base_hex, shade_hex):
+        """Плавный радиальный градиент: базовый цвет + тень в правом нижнем углу.
+
+        Возвращает ImageTk.PhotoImage (или None, если PIL недоступен).
+        Ссылку на результат нужно хранить, иначе Tkinter удалит картинку сборщиком мусора.
+        """
+        if Image is None or ImageTk is None or ImageOps is None:
+            return None
+        if width <= 0 or height <= 0:
+            return None
+
+        try:
+            resample = getattr(Image, "LANCZOS", getattr(Image, "BICUBIC", 3))
+
+            base = Image.new("RGB", (width, height), base_hex)
+            shade = Image.new("RGB", (width, height), shade_hex)
+
+            # radial_gradient: тёмный центр, светлые края. Растягиваем в 2 раза и
+            # берём верхний левый квадрант, затем разворачиваем на 180° —
+            # так "светлая" (наиболее насыщенная) точка попадает в правый нижний угол.
+            gradient = Image.radial_gradient("L").resize((width * 2, height * 2), resample)
+            mask = gradient.crop((0, 0, width, height))
+            mask = ImageOps.mirror(ImageOps.flip(mask))
+
+            # Гамма-коррекция: прижимаем тень ближе к углу, делая переход плавным.
+            mask = mask.point(lambda value: int(255 * (value / 255.0) ** 2.2))
+
+            return ImageTk.PhotoImage(Image.composite(shade, base, mask))
+        except (OSError, ValueError, AttributeError):
+            return None
 
     def _load_image(self, image_path):
         if not image_path or Image is None or ImageTk is None:
