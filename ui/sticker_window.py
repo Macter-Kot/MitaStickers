@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+from datetime import datetime
 
 try:
     from PIL import Image, ImageTk, ImageOps
@@ -43,13 +44,14 @@ Y_OFFSET = 17 # На сколько пикселей сдвигаем бумаж
 class StickerWindow(tk.Toplevel):
     _open = []
 
-    def __init__(self, root, text, image_path=None, is_overdue=False, sticker_id=None, on_complete=None, style="Желтый"):
+    def __init__(self, root, text, image_path=None, is_overdue=False, sticker_id=None, on_complete=None, style="Желтый", datetime_str=None):
         super().__init__(root)
 
         self.root = root
         self.sticker_id = sticker_id
         self.on_complete = on_complete
         self.is_overdue = is_overdue
+        self.datetime_str = datetime_str
         
         self.colors = OVERDUE if is_overdue else THEMES.get(style, THEMES["Желтый"])
         
@@ -108,11 +110,16 @@ class StickerWindow(tk.Toplevel):
         # 6. Заголовок
         if self.is_overdue:
             self.canvas.create_text(15, Y_OFFSET + 18, text="⚠", font=("Segoe UI", 12), fill="#FFFFFF", anchor="w")
-            self.canvas.create_text(35, Y_OFFSET + 18, text="ПРОСРОЧЕНО", font=("Segoe UI", 10, "bold"), fill="#FFFFFF", anchor="w")
+            title_id = self.canvas.create_text(35, Y_OFFSET + 18, text="ПРОСРОЧЕНО", font=("Segoe UI", 10, "bold"), fill="#FFFFFF", anchor="w")
+            dt_color = "#FFFFFF"
         else:
             self.canvas.create_oval(15, Y_OFFSET + 12, 23, Y_OFFSET + 20, fill="#F44336", outline="") 
-            self.canvas.create_text(30, Y_OFFSET + 16, text="НАПОМИНАНИЕ", font=("Segoe UI", 10, "bold"), fill=self.colors["border"], anchor="w")
-            
+            title_id = self.canvas.create_text(30, Y_OFFSET + 16, text="НАПОМИНАНИЕ", font=("Segoe UI", 10, "bold"), fill=self.colors["border"], anchor="w")
+            dt_color = self.colors["border"]
+
+        # 6.1 Дата и время напоминания в шапке (после заголовка)
+        self._draw_datetime(title_id, w, dt_color)
+
         # 7. Крестик закрытия
         close_id = self.canvas.create_text(w - 15, Y_OFFSET + 18, text="✕", font=("Segoe UI", 12, "bold"), fill="#FFFFFF" if self.is_overdue else self.colors["border"])
         self.canvas.tag_bind(close_id, "<Button-1>", lambda e: self.destroy())
@@ -147,6 +154,38 @@ class StickerWindow(tk.Toplevel):
                         relief="flat", font=("Segoe UI", 10, "bold"), cursor="hand2")
         # Кнопка прижата влево, чтобы правый нижний угол бумажки с градиентом был виден
         btn.place(x=14, y=h + Y_OFFSET - 40, width=150, height=32)
+
+    def _format_datetime(self, value):
+        """Разбирает сохранённую дату-время и возвращает (дата, время)."""
+        if not value:
+            return None, None
+        try:
+            due = datetime.strptime(value, storage.DATETIME_FORMAT)
+            return due.strftime("%d.%m.%Y"), due.strftime("%H:%M")
+        except (ValueError, TypeError):
+            date_part, _, time_part = str(value).partition(" ")
+            return date_part.strip() or None, time_part.strip()
+
+    def _draw_datetime(self, title_id, w, color):
+        """Рисует дату и время после заголовка. Если в одну строку не влезает —
+        время уходит под дату."""
+        date_part, time_part = self._format_datetime(self.datetime_str)
+        if not date_part:
+            return
+
+        font = ("Segoe UI", 8)
+        x = self.canvas.bbox(title_id)[2] + 10
+        right_limit = w - 30
+
+        line = "{}  {}".format(date_part, time_part) if time_part else date_part
+        item = self.canvas.create_text(x, Y_OFFSET + 17, text=line, font=font, fill=color, anchor="w")
+
+        if self.canvas.bbox(item)[2] > right_limit:
+            # Не хватило ширины — выводим время под датой
+            self.canvas.delete(item)
+            self.canvas.create_text(x, Y_OFFSET + 11, text=date_part, font=font, fill=color, anchor="w")
+            if time_part:
+                self.canvas.create_text(x, Y_OFFSET + 25, text=time_part, font=font, fill=color, anchor="w")
 
     def _make_gradient(self, width, height, base_hex, shade_hex):
         """Плавный радиальный градиент: базовый цвет + тень в правом нижнем углу.

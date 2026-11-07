@@ -33,7 +33,8 @@ def check_tasks(root):
                 image_path=sticker.get("image"),
                 is_overdue=is_overdue,
                 sticker_id=sticker.get("id"),
-                style=sticker.get("style", "Желтый")
+                style=sticker.get("style", "Желтый"),
+                datetime_str=sticker.get("datetime"),
             )
 
             sticker["status"] = storage.STATUS_SHOWN
