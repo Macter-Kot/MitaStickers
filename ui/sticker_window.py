@@ -1,4 +1,5 @@
 import os
+import sys
 import tkinter as tk
 from datetime import datetime
 
@@ -10,6 +11,20 @@ except ImportError:
     ImageOps = None
 
 from core import storage
+
+DEFAULT_PLACEHOLDER = "assets/default_placeholder.png"
+
+
+def get_resource_path(relative_path):
+    """Абсолютный путь к ресурсу — работает и в обычном режиме, и в PyInstaller.
+
+    В собранном .exe файлы кладутся во временную папку sys._MEIPASS, в исходниках
+    ресурсы лежат рядом с проектом (storage.BASE_DIR).
+    """
+    if os.path.isabs(relative_path):
+        return relative_path
+    base = getattr(sys, "_MEIPASS", None) or storage.BASE_DIR
+    return os.path.join(base, relative_path)
 
 # --- НАСТРОЙКИ ТЕМ (ЦВЕТА) ---
 # "bg"    - базовый (светлый) цвет бумажки
@@ -40,6 +55,9 @@ OVERDUE = {
 IMAGE_MAX_SIZE = (260, 160)
 CHROMA_KEY = "#FF00FF" # Секретный цвет для невидимой зоны скотча
 Y_OFFSET = 17 # На сколько пикселей сдвигаем бумажку вниз, чтобы скотч торчал
+
+# Кэш дефолтной картинки: большой PNG открываем и масштабируем лишь один раз
+_placeholder_photo = None
 
 class StickerWindow(tk.Toplevel):
     _open = []
@@ -219,19 +237,43 @@ class StickerWindow(tk.Toplevel):
             return None
 
     def _load_image(self, image_path):
-        if not image_path or Image is None or ImageTk is None:
+        global _placeholder_photo
+
+        if Image is None or ImageTk is None:
             return None
-        path = image_path
-        if not os.path.isabs(path):
-            path = os.path.join(storage.BASE_DIR, path)
+
+        # Если пользователь не выбрал картинку — подставляем дефолтную заглушку
+        is_default = not (image_path and str(image_path).strip())
+
+        if is_default:
+            path = get_resource_path(DEFAULT_PLACEHOLDER)
+        else:
+            path = str(image_path)
+            if not os.path.isabs(path):
+                path = os.path.join(storage.BASE_DIR, path)
+
+        # Файл пропал или путь битый — снова откатываемся к заглушке
         if not os.path.exists(path):
-            return None
+            path = get_resource_path(DEFAULT_PLACEHOLDER)
+            is_default = True
+            if not os.path.exists(path):
+                return None
+
+        # Заглушку масштабируем один раз и переиспользуем
+        if is_default and _placeholder_photo is not None:
+            return _placeholder_photo
+
         try:
             image = Image.open(path)
-            image.thumbnail(IMAGE_MAX_SIZE)
-            return ImageTk.PhotoImage(image)
+            resample = getattr(Image, "LANCZOS", getattr(Image, "BICUBIC", 3))
+            image.thumbnail(IMAGE_MAX_SIZE, resample)
+            photo = ImageTk.PhotoImage(image)
         except (OSError, ValueError):
             return None
+
+        if is_default:
+            _placeholder_photo = photo
+        return photo
 
     def _start_move(self, event):
         self._drag_x = event.x
