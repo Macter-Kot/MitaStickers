@@ -71,3 +71,17 @@ def update_sticker(sticker_id, **fields):
             break
     save_stickers(stickers)
     return stickers
+
+
+def get_sticker(sticker_id):
+    for sticker in load_stickers():
+        if sticker.get("id") == sticker_id:
+            return sticker
+    return None
+
+
+def delete_sticker(sticker_id):
+    stickers = load_stickers()
+    remaining = [item for item in stickers if item.get("id") != sticker_id]
+    save_stickers(remaining)
+    return remaining

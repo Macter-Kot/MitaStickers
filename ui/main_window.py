@@ -9,37 +9,60 @@ from core import autostart, storage
 _instance = None
 
 
-def open_main_window(root):
+def open_main_window(root, sticker=None, on_saved=None):
+    """Открывает окно создания/редактирования.
+
+    sticker=None        -> создание нового стикера (окно переиспользуется);
+    sticker=<dict>      -> редактирование, всегда новое окно;
+    on_saved=callable   -> вызывается после успешного сохранения.
+    """
     global _instance
-    if _instance is not None and _instance.winfo_exists():
+
+    if sticker is None and _instance is not None and _instance.winfo_exists():
         _instance.deiconify()
         _instance.lift()
         _instance.focus_force()
         return _instance
-    _instance = MainWindow(root)
-    return _instance
+
+    window = MainWindow(root, sticker=sticker, on_saved=on_saved)
+    if sticker is None:
+        _instance = window
+    return window
 
 
 class MainWindow(tk.Toplevel):
-    def __init__(self, root):
+    def __init__(self, root, sticker=None, on_saved=None):
         super().__init__(root)
 
         self.root = root
+        self.sticker = sticker or None
+        self.editing = sticker is not None
+        self.on_saved = on_saved
         self.selected_image = None
 
-        self.title("MitaStickers — Новый стикер")
+        self.title("MitaStickers — Редактирование" if self.editing else "MitaStickers — Новый стикер")
         self.resizable(False, False)
         self.attributes("-topmost", True)
         self.configure(padx=16, pady=16)
 
         self.autostart_var = tk.BooleanVar(value=autostart.is_in_startup())
-        self.image_var = tk.StringVar(value="Картинка не выбрана")
+        self.image_var = tk.StringVar()
+        self.style_var = tk.StringVar(value="Желтый")
 
+        self._prefill()
         self._build()
         self._center()
 
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.focus_force()
+
+    def _prefill(self):
+        if self.editing:
+            self.style_var.set(self.sticker.get("style", "Желтый"))
+            image = self.sticker.get("image")
+            self.image_var.set(os.path.basename(image) if image else "Картинка не выбрана")
+        else:
+            self.image_var.set("Картинка не выбрана")
 
     def _build(self):
         tk.Label(self, text="Текст напоминания:", font=("Segoe UI", 10, "bold")).grid(
@@ -47,16 +70,24 @@ class MainWindow(tk.Toplevel):
         )
         self.text_widget = tk.Text(self, width=44, height=5, wrap="word", font=("Segoe UI", 10))
         self.text_widget.grid(row=1, column=0, columnspan=3, sticky="we", pady=(4, 12))
+        if self.editing:
+            self.text_widget.insert("1.0", self.sticker.get("text", ""))
 
-        now = datetime.now() + timedelta(minutes=5)
+        when = datetime.now() + timedelta(minutes=5)
+        if self.editing:
+            try:
+                when = datetime.strptime(self.sticker.get("datetime", ""), storage.DATETIME_FORMAT)
+            except (ValueError, TypeError):
+                pass
+
         tk.Label(self, text="Дата:", font=("Segoe UI", 10)).grid(row=2, column=0, sticky="w")
         self.date_entry = ttk.Entry(self, width=16)
-        self.date_entry.insert(0, now.strftime("%Y-%m-%d"))
+        self.date_entry.insert(0, when.strftime("%Y-%m-%d"))
         self.date_entry.grid(row=3, column=0, sticky="w")
 
         tk.Label(self, text="Время:", font=("Segoe UI", 10)).grid(row=2, column=1, sticky="w", padx=(10, 0))
         self.time_entry = ttk.Entry(self, width=10)
-        self.time_entry.insert(0, now.strftime("%H:%M"))
+        self.time_entry.insert(0, when.strftime("%H:%M"))
         self.time_entry.grid(row=3, column=1, sticky="w", padx=(10, 0))
 
         tk.Label(self, text="Формат: ГГГГ-ММ-ДД и ЧЧ:ММ", font=("Segoe UI", 8), fg="gray").grid(
@@ -75,8 +106,13 @@ class MainWindow(tk.Toplevel):
 
         # --- ВЫБОР СТИЛЯ ---
         tk.Label(self, text="Стиль стикера:", font=("Segoe UI", 10, "bold")).grid(row=6, column=0, sticky="w", pady=(12, 0))
-        self.style_var = tk.StringVar(value="Желтый")
-        style_cb = ttk.Combobox(self, textvariable=self.style_var, values=["Желтый", "Розовый", "Фиолетовый"], state="readonly", width=13)
+        style_cb = ttk.Combobox(
+            self,
+            textvariable=self.style_var,
+            values=["Желтый", "Розовый", "Фиолетовый"],
+            state="readonly",
+            width=13,
+        )
         style_cb.grid(row=7, column=0, sticky="w")
 
         tk.Checkbutton(
@@ -87,9 +123,13 @@ class MainWindow(tk.Toplevel):
         ).grid(row=8, column=0, columnspan=3, sticky="w", pady=(12, 0))
 
         buttons = tk.Frame(self)
-        buttons.grid(row=9, column=0, columnspan=3, sticky="e", pady=(16, 0))
-        ttk.Button(buttons, text="Отмена", command=self.destroy).pack(side="left", padx=(0, 8))
-        ttk.Button(buttons, text="Создать", command=self._create).pack(side="left")
+        buttons.grid(row=9, column=0, columnspan=3, sticky="we", pady=(16, 0))
+        ttk.Button(buttons, text="Редактор", command=self._open_manager).pack(side="left")
+
+        right = tk.Frame(buttons)
+        right.pack(side="right")
+        ttk.Button(right, text="Отмена", command=self.destroy).pack(side="left", padx=(0, 8))
+        ttk.Button(right, text="Сохранить" if self.editing else "Создать", command=self._save).pack(side="left")
 
     def _center(self):
         self.update_idletasks()
@@ -98,6 +138,11 @@ class MainWindow(tk.Toplevel):
         x = (self.winfo_screenwidth() - width) // 2
         y = (self.winfo_screenheight() - height) // 3
         self.geometry("+{}+{}".format(x, y))
+
+    def _open_manager(self):
+        from ui.manager_window import open_manager_window
+
+        open_manager_window(self.root)
 
     def _choose_image(self):
         path = filedialog.askopenfilename(
@@ -119,7 +164,7 @@ class MainWindow(tk.Toplevel):
         shutil.copy2(path, destination)
         return destination
 
-    def _create(self):
+    def _save(self):
         text = self.text_widget.get("1.0", "end").strip()
         if not text:
             messagebox.showerror("Ошибка", "Введите текст напоминания.", parent=self)
@@ -136,7 +181,7 @@ class MainWindow(tk.Toplevel):
             )
             return
 
-        image = None
+        image = self.sticker.get("image") if self.editing else None
         if self.selected_image:
             try:
                 image = self._copy_image(self.selected_image)
@@ -144,20 +189,36 @@ class MainWindow(tk.Toplevel):
                 messagebox.showerror("Ошибка", "Не удалось скопировать картинку:\n{}".format(error), parent=self)
                 return
 
-        storage.add_sticker(
-            text=text,
-            image=image,
-            datetime_str=when.strftime(storage.DATETIME_FORMAT),
-            status=storage.STATUS_PENDING,
-            style=self.style_var.get(),
-        )
+        if self.editing:
+            storage.update_sticker(
+                self.sticker.get("id"),
+                text=text,
+                image=image,
+                datetime=when.strftime(storage.DATETIME_FORMAT),
+                style=self.style_var.get(),
+                status=storage.STATUS_PENDING,
+            )
+        else:
+            storage.add_sticker(
+                text=text,
+                image=image,
+                datetime_str=when.strftime(storage.DATETIME_FORMAT),
+                status=storage.STATUS_PENDING,
+                style=self.style_var.get(),
+            )
 
         if self.autostart_var.get():
             autostart.add_to_startup()
         else:
             autostart.remove_from_startup()
 
-        messagebox.showinfo("Готово", "Напоминание создано.", parent=self)
+        if callable(self.on_saved):
+            try:
+                self.on_saved()
+            except Exception:
+                pass
+
+        messagebox.showinfo("Готово", "Изменения сохранены." if self.editing else "Напоминание создано.", parent=self)
         self.destroy()
 
     def destroy(self):
