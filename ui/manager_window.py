@@ -17,7 +17,7 @@ PLACEHOLDER = "assets/default_placeholder.png"
 
 # Геометрия картриджа (в пикселях исходного изображения 2386x1620)
 IMAGE_SIZE = (2386, 1620)
-CUTOUT = (125, 241, 2243, 1338)  # прозрачный вырез под список
+CUTOUT = (123, 239, 2246, 1341)  # прозрачный вырез под список
 DISPLAY_WIDTH = 880
 
 THUMB_SIZE = (84, 60)
@@ -209,14 +209,17 @@ class ManagerWindow(tk.Toplevel):
         self._update_toggle_styles()
 
         # крестик закрытия на корпусе картриджа (справа сверху)
-        close = tk.Label(
-            self, text="✕", bg=CHROMA_KEY, fg=PANEL_BORDER,
-            font=("Segoe UI", 14, "bold"), cursor="hand2",
+        close_x = x1 - 15  # Координата X
+        close_y = y0 - 65  # Координата Y
+        
+        close_id = self.canvas.create_text(
+            close_x, close_y, text="✕", font=("Arial Black", 18, "bold"),
+            fill=PANEL_BORDER, activefill=RED_DARK
         )
-        close.place(x=x1 - 6, y=y0 - 40)
-        close.bind("<Button-1>", lambda event: self.destroy())
-        close.bind("<Enter>", lambda event: close.config(fg=RED_DARK))
-        close.bind("<Leave>", lambda event: close.config(fg=PANEL_BORDER))
+        # Назначаем клик и курсор
+        self.canvas.tag_bind(close_id, "<Button-1>", lambda event: self.destroy())
+        self.canvas.tag_bind(close_id, "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind(close_id, "<Leave>", lambda e: self.canvas.config(cursor=""))
 
     def _center(self):
         self.update_idletasks()
