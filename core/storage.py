@@ -82,6 +82,18 @@ def get_sticker(sticker_id):
 
 def delete_sticker(sticker_id):
     stickers = load_stickers()
+
+    # Сначала находим стикер и удаляем его картинку (если она есть)
+    for sticker in stickers:
+        if sticker.get("id") == sticker_id:
+            img_path = sticker.get("image")
+            if img_path and os.path.exists(img_path):
+                try:
+                    os.remove(img_path)
+                except OSError:
+                    pass
+            break  # Нашли и удалили картинку
+
     remaining = [item for item in stickers if item.get("id") != sticker_id]
     save_stickers(remaining)
     return remaining
