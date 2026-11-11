@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 from tkinter import filedialog, messagebox, ttk
 
 from core import autostart, storage
+from ui.sticker_window import get_resource_path
+
+APP_ICON = get_resource_path("assets/icon.ico")
 
 _instance = None
 
@@ -44,6 +47,7 @@ class MainWindow(tk.Toplevel):
         self.resizable(False, False)
         self.attributes("-topmost", True)
         self.configure(padx=16, pady=16)
+        self._apply_icon()
 
         self.autostart_var = tk.BooleanVar(value=autostart.is_in_startup())
         self.image_var = tk.StringVar()
@@ -55,6 +59,13 @@ class MainWindow(tk.Toplevel):
 
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.focus_force()
+
+    def _apply_icon(self):
+        try:
+            if os.path.exists(APP_ICON):
+                self.iconbitmap(APP_ICON)
+        except tk.TclError:
+            pass
 
     def _prefill(self):
         if self.editing:

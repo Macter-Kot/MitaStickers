@@ -9,8 +9,9 @@ if BASE_DIR not in sys.path:
 
 from core import storage, tray
 from core.scheduler import check_tasks
+from ui.sticker_window import get_resource_path
 
-ICON_PATH = os.path.join(BASE_DIR, "assets", "default_icon.ico")
+ICON_PATH = get_resource_path("assets/icon.ico")
 
 
 def main():
@@ -22,7 +23,8 @@ def main():
 
     try:
         if os.path.exists(ICON_PATH):
-            root.iconbitmap(ICON_PATH)
+            # default=... задаёт иконку по умолчанию для всех окон (иконка на панели задач)
+            root.iconbitmap(default=ICON_PATH)
     except tk.TclError:
         pass
 
