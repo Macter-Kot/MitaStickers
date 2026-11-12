@@ -9,6 +9,17 @@ from ui.sticker_window import get_resource_path
 
 APP_ICON = get_resource_path("assets/icon.ico")
 
+REPEAT_LABELS = [
+    ("Нет", storage.REPEAT_NONE),
+    ("Каждый день", storage.REPEAT_DAILY),
+    ("Каждую неделю", storage.REPEAT_WEEKLY),
+    ("Каждый месяц", storage.REPEAT_MONTHLY),
+    ("Каждый год", storage.REPEAT_YEARLY),
+    ("Каждые X дней", storage.REPEAT_CUSTOM),
+]
+LABEL_TO_REPEAT = {label: key for label, key in REPEAT_LABELS}
+REPEAT_TO_LABEL = {key: label for label, key in REPEAT_LABELS}
+
 _instance = None
 
 
@@ -52,6 +63,8 @@ class MainWindow(tk.Toplevel):
         self.autostart_var = tk.BooleanVar(value=autostart.is_in_startup())
         self.image_var = tk.StringVar()
         self.style_var = tk.StringVar(value="Желтый")
+        self.repeat_var = tk.StringVar(value=REPEAT_TO_LABEL[storage.REPEAT_NONE])
+        self.repeat_days_var = tk.IntVar(value=2)
 
         self._prefill()
         self._build()
@@ -72,6 +85,9 @@ class MainWindow(tk.Toplevel):
             self.style_var.set(self.sticker.get("style", "Желтый"))
             image = self.sticker.get("image")
             self.image_var.set(os.path.basename(image) if image else "Картинка не выбрана")
+            repeat = self.sticker.get("repeat", storage.REPEAT_NONE)
+            self.repeat_var.set(REPEAT_TO_LABEL.get(repeat, REPEAT_TO_LABEL[storage.REPEAT_NONE]))
+            self.repeat_days_var.set(int(self.sticker.get("repeat_days", 2) or 2))
         else:
             self.image_var.set("Картинка не выбрана")
 
@@ -126,6 +142,26 @@ class MainWindow(tk.Toplevel):
         )
         style_cb.grid(row=7, column=0, sticky="w")
 
+        # --- ПОВТОР ---
+        tk.Label(self, text="Повтор:", font=("Segoe UI", 10, "bold")).grid(
+            row=6, column=1, sticky="w", padx=(10, 0), pady=(12, 0)
+        )
+        self.repeat_cb = ttk.Combobox(
+            self,
+            textvariable=self.repeat_var,
+            values=[label for label, _ in REPEAT_LABELS],
+            state="readonly",
+            width=15,
+        )
+        self.repeat_cb.grid(row=7, column=1, sticky="w", padx=(10, 0))
+        self.repeat_cb.bind("<<ComboboxSelected>>", lambda event: self._update_repeat_state())
+
+        self.repeat_days_spin = tk.Spinbox(
+            self, from_=2, to=999, width=5, textvariable=self.repeat_days_var, justify="center"
+        )
+        self.repeat_days_spin.grid(row=7, column=2, sticky="w", padx=(10, 0))
+        self._update_repeat_state()
+
         tk.Checkbutton(
             self,
             text="Добавить в автозагрузку",
@@ -154,6 +190,10 @@ class MainWindow(tk.Toplevel):
         from ui.manager_window import open_manager_window
 
         open_manager_window(self.root)
+
+    def _update_repeat_state(self):
+        is_custom = self.repeat_var.get() == REPEAT_TO_LABEL[storage.REPEAT_CUSTOM]
+        self.repeat_days_spin.configure(state="normal" if is_custom else "disabled")
 
     def _choose_image(self):
         path = filedialog.askopenfilename(
@@ -200,6 +240,13 @@ class MainWindow(tk.Toplevel):
                 messagebox.showerror("Ошибка", "Не удалось скопировать картинку:\n{}".format(error), parent=self)
                 return
 
+        repeat = LABEL_TO_REPEAT.get(self.repeat_var.get(), storage.REPEAT_NONE)
+        try:
+            repeat_days = int(self.repeat_days_var.get())
+        except (tk.TclError, ValueError):
+            repeat_days = 2
+        repeat_days = max(2, min(999, repeat_days))
+
         if self.editing:
             storage.update_sticker(
                 self.sticker.get("id"),
@@ -207,6 +254,8 @@ class MainWindow(tk.Toplevel):
                 image=image,
                 datetime=when.strftime(storage.DATETIME_FORMAT),
                 style=self.style_var.get(),
+                repeat=repeat,
+                repeat_days=repeat_days,
                 status=storage.STATUS_PENDING,
             )
         else:
@@ -216,6 +265,8 @@ class MainWindow(tk.Toplevel):
                 datetime_str=when.strftime(storage.DATETIME_FORMAT),
                 status=storage.STATUS_PENDING,
                 style=self.style_var.get(),
+                repeat=repeat,
+                repeat_days=repeat_days,
             )
 
         if self.autostart_var.get():

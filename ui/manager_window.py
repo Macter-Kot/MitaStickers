@@ -296,10 +296,16 @@ class ManagerWindow(tk.Toplevel):
         ).pack(anchor="w")
 
         date_part, time_part = self._format_datetime(sticker.get("datetime"))
+        meta = tk.Frame(info, bg=CARD_BG)
+        meta.pack(anchor="w", pady=(4, 0))
         tk.Label(
-            info, text=" ".join(part for part in (date_part, time_part) if part),
+            meta, text=" ".join(part for part in (date_part, time_part) if part),
             bg=CARD_BG, fg=DATE_COLOR, font=("Segoe UI", 8),
-        ).pack(anchor="w", pady=(4, 0))
+        ).pack(side="left")
+        if sticker.get("repeat", storage.REPEAT_NONE) not in ("", storage.REPEAT_NONE, None):
+            tk.Label(
+                meta, text="\u21bb", bg=CARD_BG, fg="#2E7D32", font=("Segoe UI", 10, "bold"),
+            ).pack(side="left", padx=(6, 0))
 
         thumb = self._load_thumb(sticker.get("image"))
         if thumb is not None:

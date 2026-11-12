@@ -19,7 +19,7 @@
 MitaStickers/
 │
 ├── main.py                 # Главный файл
-├── requirements.txt        # Список библиотек (Pillow)
+├── requirements.txt        # Список библиотек (Pillow, pystray, python-dateutil)
 ├── README.md               # Краткое описание проекта
 │
 ├── data/                   # Папка для хранения данных

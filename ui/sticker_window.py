@@ -62,7 +62,7 @@ _placeholder_photo = None
 class StickerWindow(tk.Toplevel):
     _open = []
 
-    def __init__(self, root, text, image_path=None, is_overdue=False, sticker_id=None, on_complete=None, style="Желтый", datetime_str=None):
+    def __init__(self, root, text, image_path=None, is_overdue=False, sticker_id=None, on_complete=None, style="Желтый", datetime_str=None, repeat="none"):
         super().__init__(root)
 
         self.root = root
@@ -70,6 +70,7 @@ class StickerWindow(tk.Toplevel):
         self.on_complete = on_complete
         self.is_overdue = is_overdue
         self.datetime_str = datetime_str
+        self.repeat = repeat or storage.REPEAT_NONE
         
         self.colors = OVERDUE if is_overdue else THEMES.get(style, THEMES["Желтый"])
         
@@ -184,9 +185,19 @@ class StickerWindow(tk.Toplevel):
             date_part, _, time_part = str(value).partition(" ")
             return date_part.strip() or None, time_part.strip()
 
+    def _is_repeating(self):
+        return bool(self.repeat) and self.repeat != storage.REPEAT_NONE
+
+    def _repeat_badge_color(self):
+        if self.is_overdue:
+            return "#FFF176"
+        if self.colors.get("text") == "#FFFFFF":
+            return "#FFD54F"
+        return "#2E7D32"
+
     def _draw_datetime(self, title_id, w, color):
         """Рисует дату и время после заголовка. Если в одну строку не влезает —
-        время уходит под дату."""
+        время уходит под дату. Для повторяющихся событий добавляет значок ↻."""
         date_part, time_part = self._format_datetime(self.datetime_str)
         if not date_part:
             return
@@ -194,6 +205,9 @@ class StickerWindow(tk.Toplevel):
         font = ("Segoe UI", 8)
         x = self.canvas.bbox(title_id)[2] + 10
         right_limit = w - 30
+        badge = "\u21bb" if self._is_repeating() else None  # ↻
+        badge_font = ("Segoe UI", 10, "bold")
+        badge_color = self._repeat_badge_color()
 
         line = "{}  {}".format(date_part, time_part) if time_part else date_part
         item = self.canvas.create_text(x, Y_OFFSET + 17, text=line, font=font, fill=color, anchor="w")
@@ -201,9 +215,21 @@ class StickerWindow(tk.Toplevel):
         if self.canvas.bbox(item)[2] > right_limit:
             # Не хватило ширины — выводим время под датой
             self.canvas.delete(item)
-            self.canvas.create_text(x, Y_OFFSET + 11, text=date_part, font=font, fill=color, anchor="w")
+            date_item = self.canvas.create_text(x, Y_OFFSET + 11, text=date_part, font=font, fill=color, anchor="w")
             if time_part:
                 self.canvas.create_text(x, Y_OFFSET + 25, text=time_part, font=font, fill=color, anchor="w")
+            if badge:
+                self.canvas.create_text(
+                    self.canvas.bbox(date_item)[2] + 6, Y_OFFSET + 11,
+                    text=badge, font=badge_font, fill=badge_color, anchor="w",
+                )
+            return
+
+        if badge:
+            self.canvas.create_text(
+                self.canvas.bbox(item)[2] + 6, Y_OFFSET + 17,
+                text=badge, font=badge_font, fill=badge_color, anchor="w",
+            )
 
     def _make_gradient(self, width, height, base_hex, shade_hex):
         """Плавный радиальный градиент: базовый цвет + тень в правом нижнем углу.
@@ -295,7 +321,7 @@ class StickerWindow(tk.Toplevel):
 
     def complete(self):
         if self.sticker_id is not None:
-            storage.update_sticker(self.sticker_id, status=storage.STATUS_COMPLETED)
+            storage.complete_sticker(self.sticker_id)
         if callable(self.on_complete):
             try:
                 self.on_complete(self)

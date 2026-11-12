@@ -35,6 +35,7 @@ def check_tasks(root):
                 sticker_id=sticker.get("id"),
                 style=sticker.get("style", "Желтый"),
                 datetime_str=sticker.get("datetime"),
+                repeat=sticker.get("repeat", "none"),
             )
 
             sticker["status"] = storage.STATUS_SHOWN

@@ -1,5 +1,12 @@
+import calendar
 import json
 import os
+from datetime import datetime, timedelta
+
+try:
+    from dateutil.relativedelta import relativedelta
+except ImportError:  # pragma: no cover
+    relativedelta = None
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -11,6 +18,22 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M"
 STATUS_PENDING = "pending"
 STATUS_SHOWN = "shown"
 STATUS_COMPLETED = "completed"
+
+REPEAT_NONE = "none"
+REPEAT_DAILY = "daily"
+REPEAT_WEEKLY = "weekly"
+REPEAT_MONTHLY = "monthly"
+REPEAT_YEARLY = "yearly"
+REPEAT_CUSTOM = "custom"
+
+REPEAT_VALUES = (
+    REPEAT_NONE,
+    REPEAT_DAILY,
+    REPEAT_WEEKLY,
+    REPEAT_MONTHLY,
+    REPEAT_YEARLY,
+    REPEAT_CUSTOM,
+)
 
 
 def ensure_dirs():
@@ -48,7 +71,8 @@ def next_id(stickers=None):
     return max((int(item.get("id", 0)) for item in stickers), default=0) + 1
 
 
-def add_sticker(text, image=None, datetime_str="", status=STATUS_PENDING, style="Желтый"):
+def add_sticker(text, image=None, datetime_str="", status=STATUS_PENDING, style="Желтый",
+                repeat=REPEAT_NONE, repeat_days=0):
     stickers = load_stickers()
     sticker = {
         "id": next_id(stickers),
@@ -57,6 +81,8 @@ def add_sticker(text, image=None, datetime_str="", status=STATUS_PENDING, style=
         "datetime": datetime_str,
         "status": status,
         "style": style,
+        "repeat": repeat,
+        "repeat_days": int(repeat_days or 0),
     }
     stickers.append(sticker)
     save_stickers(stickers)
@@ -97,3 +123,72 @@ def delete_sticker(sticker_id):
     remaining = [item for item in stickers if item.get("id") != sticker_id]
     save_stickers(remaining)
     return remaining
+
+
+def _add_months(moment, months):
+    """Добавляет месяцы с корректировкой конца месяца (запасной вариант без dateutil)."""
+    total = moment.month - 1 + months
+    year = moment.year + total // 12
+    month = total % 12 + 1
+    day = min(moment.day, calendar.monthrange(year, month)[1])
+    return moment.replace(year=year, month=month, day=day)
+
+
+def advance_datetime(moment, repeat, repeat_days=0):
+    """Возвращает следующую дату по типу повтора (или None, если повтор выключен)."""
+    if repeat == REPEAT_DAILY:
+        return moment + timedelta(days=1)
+    if repeat == REPEAT_WEEKLY:
+        return moment + timedelta(weeks=1)
+    if repeat == REPEAT_MONTHLY:
+        if relativedelta is not None:
+            return moment + relativedelta(months=1)
+        return _add_months(moment, 1)
+    if repeat == REPEAT_YEARLY:
+        if relativedelta is not None:
+            return moment + relativedelta(years=1)
+        return _add_months(moment, 12)
+    if repeat == REPEAT_CUSTOM:
+        days = max(1, int(repeat_days or 1))
+        return moment + timedelta(days=days)
+    return None
+
+
+def complete_sticker(sticker_id):
+    """Отмечает стикер выполненным.
+
+    Для разового (repeat == "none") просто ставит статус "completed".
+    Для повторяющегося оставляет "pending" и переносит дату на следующий интервал
+    (при необходимости «догоняя» до ближайшего будущего момента).
+    """
+    stickers = load_stickers()
+    for sticker in stickers:
+        if sticker.get("id") != sticker_id:
+            continue
+
+        repeat = sticker.get("repeat", REPEAT_NONE)
+        next_moment = None
+
+        if repeat and repeat != REPEAT_NONE:
+            try:
+                base = datetime.strptime(sticker.get("datetime", ""), DATETIME_FORMAT)
+            except (ValueError, TypeError):
+                base = None
+
+            if base is not None:
+                next_moment = advance_datetime(base, repeat, sticker.get("repeat_days", 0))
+                now = datetime.now()
+                guard = 0
+                while next_moment is not None and next_moment <= now and guard < 10000:
+                    next_moment = advance_datetime(next_moment, repeat, sticker.get("repeat_days", 0))
+                    guard += 1
+
+        if next_moment is not None:
+            sticker["datetime"] = next_moment.strftime(DATETIME_FORMAT)
+            sticker["status"] = STATUS_PENDING
+        else:
+            sticker["status"] = STATUS_COMPLETED
+        break
+
+    save_stickers(stickers)
+    return stickers
