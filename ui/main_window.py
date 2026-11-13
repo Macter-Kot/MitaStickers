@@ -241,11 +241,35 @@ class MainWindow(tk.Toplevel):
                 return
 
         repeat = LABEL_TO_REPEAT.get(self.repeat_var.get(), storage.REPEAT_NONE)
-        try:
-            repeat_days = int(self.repeat_days_var.get())
-        except (tk.TclError, ValueError):
+        if repeat == storage.REPEAT_CUSTOM:
+            raw_days = self.repeat_days_spin.get().strip()
+            try:
+                repeat_days = int(raw_days)
+            except ValueError:
+                messagebox.showerror(
+                    "Ошибка",
+                    "Введите целое число от 2 до 999.",
+                    parent=self,
+                )
+                return
+
+            if repeat_days == 1:
+                messagebox.showwarning(
+                    "Внимание",
+                    "Выберите — Каждый день.",
+                    parent=self,
+                )
+                return
+
+            if repeat_days < 2 or repeat_days > 999:
+                messagebox.showerror(
+                    "Ошибка",
+                    "Введите целое число от 2 до 999.",
+                    parent=self,
+                )
+                return
+        else:
             repeat_days = 2
-        repeat_days = max(2, min(999, repeat_days))
 
         if self.editing:
             storage.update_sticker(

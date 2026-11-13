@@ -174,6 +174,16 @@ class StickerWindow(tk.Toplevel):
         # Кнопка прижата влево, чтобы правый нижний угол бумажки с градиентом был виден
         btn.place(x=14, y=h + Y_OFFSET - 40, width=150, height=32)
 
+        # 11. Значок повтора в правом нижнем углу
+        if self._is_repeating():
+            self.canvas.create_text(
+                w - 35, h + Y_OFFSET - 24,
+                text="\u21bb",  # ↻
+                font=("Segoe UI", 18, "bold"),
+                fill=self._repeat_badge_color(),
+                anchor="center",
+            )
+
     def _format_datetime(self, value):
         """Разбирает сохранённую дату-время и возвращает (дата, время)."""
         if not value:
@@ -190,14 +200,14 @@ class StickerWindow(tk.Toplevel):
 
     def _repeat_badge_color(self):
         if self.is_overdue:
-            return "#FFF176"
+            return "#B71C1C"  # Темно-красный, чтобы четко читался внизу просроченного стикера
         if self.colors.get("text") == "#FFFFFF":
             return "#FFD54F"
         return "#2E7D32"
 
     def _draw_datetime(self, title_id, w, color):
         """Рисует дату и время после заголовка. Если в одну строку не влезает —
-        время уходит под дату. Для повторяющихся событий добавляет значок ↻."""
+        время уходит под дату."""
         date_part, time_part = self._format_datetime(self.datetime_str)
         if not date_part:
             return
@@ -205,31 +215,15 @@ class StickerWindow(tk.Toplevel):
         font = ("Segoe UI", 8)
         x = self.canvas.bbox(title_id)[2] + 10
         right_limit = w - 30
-        badge = "\u21bb" if self._is_repeating() else None  # ↻
-        badge_font = ("Segoe UI", 10, "bold")
-        badge_color = self._repeat_badge_color()
 
         line = "{}  {}".format(date_part, time_part) if time_part else date_part
         item = self.canvas.create_text(x, Y_OFFSET + 17, text=line, font=font, fill=color, anchor="w")
 
         if self.canvas.bbox(item)[2] > right_limit:
-            # Не хватило ширины — выводим время под датой
             self.canvas.delete(item)
-            date_item = self.canvas.create_text(x, Y_OFFSET + 11, text=date_part, font=font, fill=color, anchor="w")
+            self.canvas.create_text(x, Y_OFFSET + 11, text=date_part, font=font, fill=color, anchor="w")
             if time_part:
                 self.canvas.create_text(x, Y_OFFSET + 25, text=time_part, font=font, fill=color, anchor="w")
-            if badge:
-                self.canvas.create_text(
-                    self.canvas.bbox(date_item)[2] + 6, Y_OFFSET + 11,
-                    text=badge, font=badge_font, fill=badge_color, anchor="w",
-                )
-            return
-
-        if badge:
-            self.canvas.create_text(
-                self.canvas.bbox(item)[2] + 6, Y_OFFSET + 17,
-                text=badge, font=badge_font, fill=badge_color, anchor="w",
-            )
 
     def _make_gradient(self, width, height, base_hex, shade_hex):
         """Плавный радиальный градиент: базовый цвет + тень в правом нижнем углу.
