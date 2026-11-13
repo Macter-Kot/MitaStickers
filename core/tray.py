@@ -43,6 +43,14 @@ def _on_manager(icon, item):
     _root.after_idle(lambda: open_manager_window(_root))
 
 
+def _on_settings(icon, item):
+    if _root is None:
+        return
+    from ui.settings_window import open_settings_window
+
+    _root.after_idle(lambda: open_settings_window(_root))
+
+
 def _on_exit(icon, item):
     if _root is not None:
         _root.after_idle(_root.quit)
@@ -59,6 +67,7 @@ def start_tray(root):
     menu = pystray.Menu(
         pystray.MenuItem("Создать стикер", _on_create, default=True),
         pystray.MenuItem("Редактор напоминаний", _on_manager),
+        pystray.MenuItem("Настройки", _on_settings),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Выход", _on_exit),
     )

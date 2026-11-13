@@ -4,8 +4,9 @@ import tkinter as tk
 from datetime import datetime, timedelta
 from tkinter import filedialog, messagebox, ttk
 
-from core import autostart, storage
+from core import storage
 from ui.sticker_window import get_resource_path
+from ui.manager_window import Tooltip
 
 APP_ICON = get_resource_path("assets/icon.ico")
 
@@ -60,7 +61,6 @@ class MainWindow(tk.Toplevel):
         self.configure(padx=16, pady=16)
         self._apply_icon()
 
-        self.autostart_var = tk.BooleanVar(value=autostart.is_in_startup())
         self.image_var = tk.StringVar()
         self.style_var = tk.StringVar(value="Желтый")
         self.repeat_var = tk.StringVar(value=REPEAT_TO_LABEL[storage.REPEAT_NONE])
@@ -93,8 +93,12 @@ class MainWindow(tk.Toplevel):
 
     def _build(self):
         tk.Label(self, text="Текст напоминания:", font=("Segoe UI", 10, "bold")).grid(
-            row=0, column=0, columnspan=3, sticky="w"
+            row=0, column=0, columnspan=2, sticky="w"
         )
+        self.btn_settings = ttk.Button(self, text="\u2699", width=3, command=self._open_settings)
+        self.btn_settings.grid(row=0, column=2, sticky="e")
+        self._settings_tooltip = Tooltip(self.btn_settings, "Настройки")
+
         self.text_widget = tk.Text(self, width=44, height=5, wrap="word", font=("Segoe UI", 10))
         self.text_widget.grid(row=1, column=0, columnspan=3, sticky="we", pady=(4, 12))
         if self.editing:
@@ -162,15 +166,8 @@ class MainWindow(tk.Toplevel):
         self.repeat_days_spin.grid(row=7, column=2, sticky="w", padx=(10, 0))
         self._update_repeat_state()
 
-        tk.Checkbutton(
-            self,
-            text="Добавить в автозагрузку",
-            variable=self.autostart_var,
-            font=("Segoe UI", 10),
-        ).grid(row=8, column=0, columnspan=3, sticky="w", pady=(12, 0))
-
         buttons = tk.Frame(self)
-        buttons.grid(row=9, column=0, columnspan=3, sticky="we", pady=(16, 0))
+        buttons.grid(row=8, column=0, columnspan=3, sticky="we", pady=(16, 0))
         ttk.Button(buttons, text="Редактор", command=self._open_manager).pack(side="left")
 
         right = tk.Frame(buttons)
@@ -190,6 +187,11 @@ class MainWindow(tk.Toplevel):
         from ui.manager_window import open_manager_window
 
         open_manager_window(self.root)
+
+    def _open_settings(self):
+        from ui.settings_window import open_settings_window
+
+        open_settings_window(self.root)
 
     def _update_repeat_state(self):
         is_custom = self.repeat_var.get() == REPEAT_TO_LABEL[storage.REPEAT_CUSTOM]
@@ -292,11 +294,6 @@ class MainWindow(tk.Toplevel):
                 repeat=repeat,
                 repeat_days=repeat_days,
             )
-
-        if self.autostart_var.get():
-            autostart.add_to_startup()
-        else:
-            autostart.remove_from_startup()
 
         if callable(self.on_saved):
             try:
