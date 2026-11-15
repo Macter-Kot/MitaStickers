@@ -11,6 +11,7 @@ except ImportError:  # pragma: no cover
     ImageTk = None
 
 from core import storage
+from core.i18n import _
 from ui.sticker_window import get_resource_path
 from ui.manager_window import Tooltip
 
@@ -32,16 +33,18 @@ GREEN_DARK = "#43A047"
 RED = "#EF5350"
 RED_DARK = "#C62828"
 
-REPEAT_LABELS = [
-    ("Нет", storage.REPEAT_NONE),
-    ("Каждый день", storage.REPEAT_DAILY),
-    ("Каждую неделю", storage.REPEAT_WEEKLY),
-    ("Каждый месяц", storage.REPEAT_MONTHLY),
-    ("Каждый год", storage.REPEAT_YEARLY),
-    ("Каждые X дней", storage.REPEAT_CUSTOM),
+# Канонические значения стилей (они же хранятся в JSON) и их исходные подписи
+STYLE_VALUES = ["Желтый", "Розовый", "Фиолетовый"]
+
+# Пары (канонический код повтора, исходная русская подпись)
+REPEAT_SPEC = [
+    (storage.REPEAT_NONE, "Нет"),
+    (storage.REPEAT_DAILY, "Каждый день"),
+    (storage.REPEAT_WEEKLY, "Каждую неделю"),
+    (storage.REPEAT_MONTHLY, "Каждый месяц"),
+    (storage.REPEAT_YEARLY, "Каждый год"),
+    (storage.REPEAT_CUSTOM, "Каждые X дней"),
 ]
-LABEL_TO_REPEAT = {label: key for label, key in REPEAT_LABELS}
-REPEAT_TO_LABEL = {key: label for label, key in REPEAT_LABELS}
 
 _instance = None
 
@@ -80,7 +83,7 @@ class MainWindow(tk.Toplevel):
         self._drag_x = 0
         self._drag_y = 0
 
-        self.title("MitaStickers — Редактирование" if self.editing else "MitaStickers — Новый стикер")
+        self.title("MitaStickers — " + (_("Редактирование") if self.editing else _("Новый стикер")))
         self.resizable(False, False)
         self.attributes("-topmost", True)
         self.overrideredirect(True)
@@ -88,11 +91,11 @@ class MainWindow(tk.Toplevel):
         self._apply_icon()
 
         self.image_var = tk.StringVar()
-        self.style_var = tk.StringVar(value="Желтый")
-        self.repeat_var = tk.StringVar(value=REPEAT_TO_LABEL[storage.REPEAT_NONE])
+        self.style_var = tk.StringVar()
+        self.repeat_var = tk.StringVar()
         self.repeat_days_var = tk.IntVar(value=2)
 
-        self._prefill()
+        self._build_mappings()
         self._build()
         self._center()
 
@@ -101,23 +104,46 @@ class MainWindow(tk.Toplevel):
         self.bind("<Map>", self._on_map)
         self.focus_force()
 
+    def _build_mappings(self):
+        # Стили: подпись <-> канонический ключ
+        self._style_labels = [_("Желтый"), _("Розовый"), _("Фиолетовый")]
+        self._style_value_by_label = dict(zip(self._style_labels, STYLE_VALUES))
+        self._style_label_by_value = dict(zip(STYLE_VALUES, self._style_labels))
+
+        # Повторы: подпись <-> канонический код
+        self._repeat_labels = []
+        self._repeat_value_by_label = {}
+        self._repeat_label_by_value = {}
+        for value, source in REPEAT_SPEC:
+            label = _(source)
+            self._repeat_labels.append(label)
+            self._repeat_value_by_label[label] = value
+            self._repeat_label_by_value[value] = label
+        self._repeat_custom_label = self._repeat_label_by_value[storage.REPEAT_CUSTOM]
+
+        # Начальные значения
+        if self.editing:
+            initial_style = self.sticker.get("style", STYLE_VALUES[0])
+            initial_repeat = self.sticker.get("repeat", storage.REPEAT_NONE)
+            self.repeat_days_var.set(int(self.sticker.get("repeat_days", 2) or 2))
+            image = self.sticker.get("image")
+            self.image_var.set(os.path.basename(image) if image else _("Картинка не выбрана"))
+        else:
+            initial_style = STYLE_VALUES[0]
+            initial_repeat = storage.REPEAT_NONE
+            self.image_var.set(_("Картинка не выбрана"))
+
+        self.style_var.set(self._style_label_by_value.get(initial_style, self._style_labels[0]))
+        self.repeat_var.set(
+            self._repeat_label_by_value.get(initial_repeat, self._repeat_label_by_value[storage.REPEAT_NONE])
+        )
+
     def _apply_icon(self):
         try:
             if os.path.exists(APP_ICON):
                 self.iconbitmap(APP_ICON)
         except tk.TclError:
             pass
-
-    def _prefill(self):
-        if self.editing:
-            self.style_var.set(self.sticker.get("style", "Желтый"))
-            image = self.sticker.get("image")
-            self.image_var.set(os.path.basename(image) if image else "Картинка не выбрана")
-            repeat = self.sticker.get("repeat", storage.REPEAT_NONE)
-            self.repeat_var.set(REPEAT_TO_LABEL.get(repeat, REPEAT_TO_LABEL[storage.REPEAT_NONE]))
-            self.repeat_days_var.set(int(self.sticker.get("repeat_days", 2) or 2))
-        else:
-            self.image_var.set("Картинка не выбрана")
 
     # ---------- сборка интерфейса ----------
     def _build(self):
@@ -140,14 +166,14 @@ class MainWindow(tk.Toplevel):
 
         subtitle = tk.Label(
             header,
-            text="Редактирование" if self.editing else "Новый стикер",
+            text=_("Редактирование") if self.editing else _("Новый стикер"),
             bg=HEADER_BG, fg=MUTED, font=(FONT, 9, "italic"),
         )
         subtitle.pack(side="left", pady=(16, 0))
 
-        close_btn = self._header_button(header, "\u2716", self.destroy, RED, RED_DARK)
+        close_btn = self._header_button(header, "\u2716", self.destroy, RED_DARK)
         close_btn.pack(side="right", padx=(0, 8), pady=6)
-        min_btn = self._header_button(header, "\u2014", self._minimize, PRIMARY, PRIMARY_DARK)
+        min_btn = self._header_button(header, "\u2014", self._minimize, PRIMARY_DARK)
         min_btn.pack(side="right", pady=6)
 
         for widget in (header, logo, subtitle):
@@ -160,8 +186,7 @@ class MainWindow(tk.Toplevel):
         body.grid_columnconfigure(1, weight=1)
         body.grid_columnconfigure(2, weight=1)
 
-        # Заголовок + кнопка настроек
-        tk.Label(body, text="Текст напоминания:", bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
+        tk.Label(body, text=_("Текст напоминания:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
             row=0, column=0, columnspan=2, sticky="w"
         )
         self.btn_settings = tk.Button(
@@ -170,7 +195,7 @@ class MainWindow(tk.Toplevel):
             font=(FONT, 11, "bold"), width=3, cursor="hand2",
         )
         self.btn_settings.grid(row=0, column=2, sticky="e")
-        self._settings_tooltip = Tooltip(self.btn_settings, "Настройки")
+        self._settings_tooltip = Tooltip(self.btn_settings, _("Настройки"))
 
         self.text_widget = tk.Text(
             body, width=44, height=5, wrap="word", font=(FONT, 10),
@@ -189,26 +214,26 @@ class MainWindow(tk.Toplevel):
             except (ValueError, TypeError):
                 pass
 
-        tk.Label(body, text="Дата:", bg=WIN_BG, fg=TEXT, font=(FONT, 10)).grid(row=2, column=0, sticky="w")
+        tk.Label(body, text=_("Дата:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10)).grid(row=2, column=0, sticky="w")
         self.date_entry = self._entry(body, width=16)
         self.date_entry.insert(0, when.strftime("%Y-%m-%d"))
         self.date_entry.grid(row=3, column=0, sticky="w", pady=(2, 0))
 
-        tk.Label(body, text="Время:", bg=WIN_BG, fg=TEXT, font=(FONT, 10)).grid(
+        tk.Label(body, text=_("Время:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10)).grid(
             row=2, column=1, sticky="w", padx=(10, 0)
         )
         self.time_entry = self._entry(body, width=10)
         self.time_entry.insert(0, when.strftime("%H:%M"))
         self.time_entry.grid(row=3, column=1, sticky="w", padx=(10, 0), pady=(2, 0))
 
-        tk.Label(body, text="ГГГГ-ММ-ДД и ЧЧ:ММ", bg=WIN_BG, fg=MUTED, font=(FONT, 8)).grid(
+        tk.Label(body, text=_("ГГГГ-ММ-ДД и ЧЧ:ММ"), bg=WIN_BG, fg=MUTED, font=(FONT, 8)).grid(
             row=3, column=2, sticky="w", padx=(10, 0), pady=(2, 0)
         )
 
-        tk.Label(body, text="Картинка (необязательно):", bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
+        tk.Label(body, text=_("Картинка (необязательно):"), bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
             row=4, column=0, columnspan=3, sticky="w", pady=(12, 0)
         )
-        self._button(body, "Выбрать файл...", self._choose_image, PRIMARY, PRIMARY_DARK).grid(
+        self._button(body, _("Выбрать файл..."), self._choose_image, PRIMARY, PRIMARY_DARK).grid(
             row=5, column=0, sticky="w", pady=(6, 0)
         )
         tk.Label(body, textvariable=self.image_var, bg=WIN_BG, fg=MUTED, font=(FONT, 8)).grid(
@@ -216,17 +241,17 @@ class MainWindow(tk.Toplevel):
         )
 
         # --- Стиль ---
-        tk.Label(body, text="Стиль стикера:", bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
+        tk.Label(body, text=_("Стиль стикера:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
             row=6, column=0, sticky="w", pady=(12, 0)
         )
-        self.style_menu = self._option_menu(body, self.style_var, ["Желтый", "Розовый", "Фиолетовый"])
+        self.style_menu = self._option_menu(body, self.style_var, self._style_labels, width=15)
         self.style_menu.grid(row=7, column=0, sticky="w", pady=(2, 0))
 
         # --- Повтор ---
-        tk.Label(body, text="Повтор:", bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
+        tk.Label(body, text=_("Повтор:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
             row=6, column=1, sticky="w", padx=(10, 0), pady=(12, 0)
         )
-        self.repeat_menu = self._option_menu(body, self.repeat_var, [label for label, _ in REPEAT_LABELS])
+        self.repeat_menu = self._option_menu(body, self.repeat_var, self._repeat_labels, width=18)
         self.repeat_menu.grid(row=7, column=1, sticky="w", padx=(10, 0), pady=(2, 0))
         self.repeat_var.trace_add("write", lambda *a: self._update_repeat_state())
 
@@ -241,17 +266,17 @@ class MainWindow(tk.Toplevel):
 
         buttons = tk.Frame(body, bg=WIN_BG)
         buttons.grid(row=8, column=0, columnspan=3, sticky="we", pady=(16, 0))
-        self._button(buttons, "Редактор", self._open_manager, PRIMARY, PRIMARY_DARK).pack(side="left")
+        self._button(buttons, _("Редактор"), self._open_manager, PRIMARY, PRIMARY_DARK).pack(side="left")
 
         right = tk.Frame(buttons, bg=WIN_BG)
         right.pack(side="right")
-        self._button(right, "Отмена", self.destroy, RED, RED_DARK).pack(side="left", padx=(0, 8))
+        self._button(right, _("Отмена"), self.destroy, RED, RED_DARK).pack(side="left", padx=(0, 8))
         self._button(
-            right, "Сохранить" if self.editing else "Создать", self._save, GREEN, GREEN_DARK
+            right, _("Сохранить") if self.editing else _("Создать"), self._save, GREEN, GREEN_DARK
         ).pack(side="left")
 
     # ---------- фабрики виджетов ----------
-    def _header_button(self, parent, text, command, bg, hover):
+    def _header_button(self, parent, text, command, hover):
         button = tk.Button(
             parent, text=text, command=command, bg=HEADER_BG, fg=TEXT, activebackground=hover,
             activeforeground="white", relief="flat", bd=0, font=(FONT, 10, "bold"),
@@ -278,12 +303,12 @@ class MainWindow(tk.Toplevel):
             highlightthickness=1, highlightbackground=BORDER, highlightcolor=PRIMARY,
         )
 
-    def _option_menu(self, parent, variable, values):
+    def _option_menu(self, parent, variable, values, width=15):
         menu = tk.OptionMenu(parent, variable, *values)
         menu.configure(
             bg=PANEL_BG, fg=TEXT, activebackground=PRIMARY, activeforeground="white",
             relief="flat", bd=0, highlightthickness=1, highlightbackground=BORDER,
-            font=(FONT, 10), padx=8, pady=4, cursor="hand2", anchor="w", width=15,
+            font=(FONT, 10), padx=8, pady=4, cursor="hand2", anchor="w", width=width,
         )
         menu["menu"].configure(
             bg=PANEL_BG, fg=TEXT, activebackground=PRIMARY, activeforeground="white",
@@ -355,15 +380,15 @@ class MainWindow(tk.Toplevel):
         open_settings_window(self.root)
 
     def _update_repeat_state(self):
-        is_custom = self.repeat_var.get() == REPEAT_TO_LABEL[storage.REPEAT_CUSTOM]
+        is_custom = self.repeat_var.get() == self._repeat_custom_label
         self.repeat_days_spin.configure(state="normal" if is_custom else "disabled")
 
     def _choose_image(self):
         path = filedialog.askopenfilename(
-            title="Выберите изображение",
+            title=_("Выберите изображение"),
             filetypes=[
-                ("Изображения", "*.png *.jpg *.jpeg *.gif *.bmp *.webp"),
-                ("Все файлы", "*.*"),
+                (_("Изображения"), "*.png *.jpg *.jpeg *.gif *.bmp *.webp"),
+                (_("Все файлы"), "*.*"),
             ],
         )
         if path:
@@ -381,7 +406,7 @@ class MainWindow(tk.Toplevel):
     def _save(self):
         text = self.text_widget.get("1.0", "end").strip()
         if not text:
-            messagebox.showerror("Ошибка", "Введите текст напоминания.", parent=self)
+            messagebox.showerror(_("Ошибка"), _("Введите текст напоминания."), parent=self)
             return
 
         raw = "{} {}".format(self.date_entry.get().strip(), self.time_entry.get().strip())
@@ -389,8 +414,8 @@ class MainWindow(tk.Toplevel):
             when = datetime.strptime(raw, storage.DATETIME_FORMAT)
         except ValueError:
             messagebox.showerror(
-                "Ошибка",
-                "Неверный формат даты или времени.\nИспользуйте ГГГГ-ММ-ДД и ЧЧ:ММ.",
+                _("Ошибка"),
+                _("Неверный формат даты или времени.\nИспользуйте ГГГГ-ММ-ДД и ЧЧ:ММ."),
                 parent=self,
             )
             return
@@ -400,27 +425,33 @@ class MainWindow(tk.Toplevel):
             try:
                 image = self._copy_image(self.selected_image)
             except OSError as error:
-                messagebox.showerror("Ошибка", "Не удалось скопировать картинку:\n{}".format(error), parent=self)
+                messagebox.showerror(
+                    _("Ошибка"),
+                    _("Не удалось скопировать картинку:\n{}").format(error),
+                    parent=self,
+                )
                 return
 
-        repeat = LABEL_TO_REPEAT.get(self.repeat_var.get(), storage.REPEAT_NONE)
+        repeat = self._repeat_value_by_label.get(self.repeat_var.get(), storage.REPEAT_NONE)
         if repeat == storage.REPEAT_CUSTOM:
             raw_days = self.repeat_days_spin.get().strip()
             try:
                 repeat_days = int(raw_days)
             except ValueError:
-                messagebox.showerror("Ошибка", "Введите целое число от 2 до 999.", parent=self)
+                messagebox.showerror(_("Ошибка"), _("Введите целое число от 2 до 999."), parent=self)
                 return
 
             if repeat_days == 1:
-                messagebox.showwarning("Внимание", "Выберите — Каждый день.", parent=self)
+                messagebox.showwarning(_("Внимание"), _("Выберите — Каждый день."), parent=self)
                 return
 
             if repeat_days < 2 or repeat_days > 999:
-                messagebox.showerror("Ошибка", "Введите целое число от 2 до 999.", parent=self)
+                messagebox.showerror(_("Ошибка"), _("Введите целое число от 2 до 999."), parent=self)
                 return
         else:
             repeat_days = 2
+
+        style = self._style_value_by_label.get(self.style_var.get(), STYLE_VALUES[0])
 
         if self.editing:
             storage.update_sticker(
@@ -428,7 +459,7 @@ class MainWindow(tk.Toplevel):
                 text=text,
                 image=image,
                 datetime=when.strftime(storage.DATETIME_FORMAT),
-                style=self.style_var.get(),
+                style=style,
                 repeat=repeat,
                 repeat_days=repeat_days,
                 status=storage.STATUS_PENDING,
@@ -439,7 +470,7 @@ class MainWindow(tk.Toplevel):
                 image=image,
                 datetime_str=when.strftime(storage.DATETIME_FORMAT),
                 status=storage.STATUS_PENDING,
-                style=self.style_var.get(),
+                style=style,
                 repeat=repeat,
                 repeat_days=repeat_days,
             )
@@ -450,7 +481,11 @@ class MainWindow(tk.Toplevel):
             except Exception:
                 pass
 
-        messagebox.showinfo("Готово", "Изменения сохранены." if self.editing else "Напоминание создано.", parent=self)
+        messagebox.showinfo(
+            _("Готово"),
+            _("Изменения сохранены.") if self.editing else _("Напоминание создано."),
+            parent=self,
+        )
         self.destroy()
 
     def destroy(self):

@@ -1,6 +1,6 @@
 import os
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 
 try:
     from PIL import Image, ImageTk
@@ -8,7 +8,8 @@ except ImportError:  # pragma: no cover
     Image = None
     ImageTk = None
 
-from core import autostart, settings
+from core import autostart, i18n, settings
+from core.i18n import _
 from ui.sticker_window import get_resource_path
 from ui.manager_window import (
     CARTRIDGE,
@@ -26,7 +27,8 @@ from ui.manager_window import (
     GREEN_DARK,
     RED,
     RED_DARK,
-    Tooltip,
+    PRIMARY,
+    PRIMARY_DARK,
 )
 
 _instance = None
@@ -101,7 +103,6 @@ class SettingsWindow(tk.Toplevel):
 
         x0, y0, x1, y1 = self._cutout_rect()
 
-        # панель внутри выреза
         self.panel = tk.Frame(self, bg=PANEL_BG, highlightthickness=2, highlightbackground=PANEL_BORDER)
         self.panel.place(x=x0, y=y0, width=x1 - x0, height=y1 - y0)
         self.panel.grid_rowconfigure(1, weight=1)
@@ -109,7 +110,7 @@ class SettingsWindow(tk.Toplevel):
 
         tk.Label(
             self.panel,
-            text="НАСТРОЙКИ",
+            text=_("НАСТРОЙКИ"),
             bg=PANEL_BG,
             fg=PANEL_BORDER,
             font=("Segoe UI", 11, "bold"),
@@ -143,12 +144,12 @@ class SettingsWindow(tk.Toplevel):
         bottom = tk.Frame(self.panel, bg=PANEL_BG)
         bottom.grid(row=2, column=0, sticky="ew", pady=6)
         self.btn_save = tk.Button(
-            bottom, text="Сохранить", command=self._save,
+            bottom, text=_("Сохранить"), command=self._save,
             font=("Segoe UI", 9, "bold"), relief="flat", bd=0, height=1, padx=12, cursor="hand2",
             bg=GREEN, fg="white", activebackground=GREEN_DARK, activeforeground="white",
         )
         self.btn_cancel = tk.Button(
-            bottom, text="Отмена", command=self.destroy,
+            bottom, text=_("Отмена"), command=self.destroy,
             font=("Segoe UI", 9, "bold"), relief="flat", bd=0, height=1, padx=12, cursor="hand2",
             bg=RED, fg="white", activebackground=RED_DARK, activeforeground="white",
         )
@@ -166,23 +167,25 @@ class SettingsWindow(tk.Toplevel):
         self.canvas.tag_bind(close_id, "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
         self.canvas.tag_bind(close_id, "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-    def _build_list(self):
-        self._add_autostart_card()
-
-    def _add_autostart_card(self):
+    # ---------- карточки ----------
+    def _card(self, title, subtitle):
         card = tk.Frame(self.list_inner, bg=CARD_BG, highlightthickness=1, highlightbackground=CARD_BORDER)
         card.pack(fill="x", padx=4, pady=4)
 
         info = tk.Frame(card, bg=CARD_BG)
         info.pack(side="left", fill="x", expand=True, padx=(12, 6), pady=10)
-        tk.Label(
-            info, text="Добавить в автозагрузку", bg=CARD_BG, fg=TEXT_COLOR,
-            font=("Segoe UI", 10, "bold"),
-        ).pack(anchor="w")
-        tk.Label(
-            info, text="Запускать MitaStickers при входе в Windows", bg=CARD_BG,
-            fg=DATE_COLOR, font=("Segoe UI", 8),
-        ).pack(anchor="w", pady=(2, 0))
+        tk.Label(info, text=title, bg=CARD_BG, fg=TEXT_COLOR, font=("Segoe UI", 10, "bold")).pack(anchor="w")
+        tk.Label(info, text=subtitle, bg=CARD_BG, fg=DATE_COLOR, font=("Segoe UI", 8)).pack(
+            anchor="w", pady=(2, 0)
+        )
+        return card
+
+    def _build_list(self):
+        self._add_autostart_card()
+        self._add_language_card()
+
+    def _add_autostart_card(self):
+        card = self._card(_("Добавить в автозагрузку"), _("Запускать MitaStickers при входе в Windows"))
 
         self.toggle = tk.Label(
             card, text=" ", width=3, height=1, font=("Segoe UI", 13, "bold"),
@@ -193,6 +196,25 @@ class SettingsWindow(tk.Toplevel):
         self.toggle.bind("<Button-1>", lambda event: self._toggle_autostart())
         self._update_toggle()
 
+    def _add_language_card(self):
+        card = self._card(_("Язык"), _("Язык интерфейса"))
+
+        langs = i18n.available_languages()
+        self._lang_code_by_label = {name: code for code, name in langs.items()}
+        self.lang_var = tk.StringVar(value=langs.get(i18n.get_language(), langs["ru"]))
+
+        menu = tk.OptionMenu(card, self.lang_var, *langs.values(), command=self._on_language_change)
+        menu.configure(
+            bg=PANEL_BG, fg=TEXT_COLOR, activebackground=PRIMARY, activeforeground="white",
+            relief="flat", bd=0, highlightthickness=1, highlightbackground=CARD_BORDER,
+            font=("Segoe UI", 9), padx=8, pady=2, cursor="hand2", anchor="w", width=10,
+        )
+        menu["menu"].configure(
+            bg=PANEL_BG, fg=TEXT_COLOR, activebackground=PRIMARY, activeforeground="white",
+            font=("Segoe UI", 9), bd=0,
+        )
+        menu.pack(side="right", padx=(6, 12))
+
     def _toggle_autostart(self):
         self.autostart_enabled = not self.autostart_enabled
         self._update_toggle()
@@ -202,6 +224,20 @@ class SettingsWindow(tk.Toplevel):
             self.toggle.configure(text="\u2714", bg=GREEN, highlightbackground=GREEN_DARK)
         else:
             self.toggle.configure(text=" ", bg=CARD_BG, highlightbackground="#BDBDBD")
+
+    def _on_language_change(self, label):
+        code = self._lang_code_by_label.get(label)
+        if not code or code == i18n.get_language():
+            return
+        i18n.set_language(code)
+        messagebox.showinfo(
+            _("Язык"),
+            _("Перезапустите приложение, чтобы применить язык полностью."),
+            parent=self,
+        )
+        root = self.root
+        self.destroy()
+        root.after(10, lambda: open_settings_window(root))
 
     def _center(self):
         self.update_idletasks()

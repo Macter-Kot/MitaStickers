@@ -9,6 +9,7 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from core import autostart, settings, storage, tray
+from core.i18n import _
 from core.scheduler import check_tasks
 from ui.sticker_window import get_resource_path
 
@@ -30,8 +31,8 @@ def ask_autostart_on_first_run(root):
         try:
             answer = messagebox.askyesno(
                 "MitaStickers",
-                "Добавить MitaStickers в автозагрузку Windows, чтобы напоминания "
-                "работали после перезагрузки компьютера?",
+                _("Добавить MitaStickers в автозагрузку Windows, чтобы напоминания "
+                  "работали после перезагрузки компьютера?"),
                 parent=root,
             )
         except Exception:

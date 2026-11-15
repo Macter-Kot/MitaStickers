@@ -8,6 +8,7 @@ except ImportError:  # pragma: no cover
     Image = None
 
 from core import storage
+from core.i18n import _
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ICON_PATH = os.path.join(BASE_DIR, "assets", "default_icon.ico")
@@ -65,11 +66,11 @@ def start_tray(root):
         return
 
     menu = pystray.Menu(
-        pystray.MenuItem("Создать стикер", _on_create, default=True),
-        pystray.MenuItem("Редактор напоминаний", _on_manager),
-        pystray.MenuItem("Настройки", _on_settings),
+        pystray.MenuItem(_("Создать стикер"), _on_create, default=True),
+        pystray.MenuItem(_("Редактор напоминаний"), _on_manager),
+        pystray.MenuItem(_("Настройки"), _on_settings),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Выход", _on_exit),
+        pystray.MenuItem(_("Выход"), _on_exit),
     )
     _icon = pystray.Icon("MitaStickers", _load_icon(), "MitaStickers", menu)
     _icon.run()

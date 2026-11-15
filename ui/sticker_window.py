@@ -11,6 +11,7 @@ except ImportError:
     ImageOps = None
 
 from core import storage
+from core.i18n import _
 
 DEFAULT_PLACEHOLDER = "assets/default_placeholder.png"
 
@@ -129,11 +130,11 @@ class StickerWindow(tk.Toplevel):
         # 6. Заголовок
         if self.is_overdue:
             self.canvas.create_text(15, Y_OFFSET + 18, text="⚠", font=("Segoe UI", 12), fill="#FFFFFF", anchor="w")
-            title_id = self.canvas.create_text(35, Y_OFFSET + 18, text="ПРОСРОЧЕНО", font=("Segoe UI", 10, "bold"), fill="#FFFFFF", anchor="w")
+            title_id = self.canvas.create_text(35, Y_OFFSET + 18, text=_("ПРОСРОЧЕНО"), font=("Segoe UI", 10, "bold"), fill="#FFFFFF", anchor="w")
             dt_color = "#FFFFFF"
         else:
             self.canvas.create_oval(15, Y_OFFSET + 12, 23, Y_OFFSET + 20, fill="#F44336", outline="") 
-            title_id = self.canvas.create_text(30, Y_OFFSET + 16, text="НАПОМИНАНИЕ", font=("Segoe UI", 10, "bold"), fill=self.colors["border"], anchor="w")
+            title_id = self.canvas.create_text(30, Y_OFFSET + 16, text=_("НАПОМИНАНИЕ"), font=("Segoe UI", 10, "bold"), fill=self.colors["border"], anchor="w")
             dt_color = self.colors["border"]
 
         # 6.1 Дата и время напоминания в шапке (после заголовка)
@@ -165,10 +166,10 @@ class StickerWindow(tk.Toplevel):
             current_y += photo.height() + 10
 
         if self.is_overdue:
-            self.canvas.create_text(w//2, current_y, text="⚠ Дедлайн уже прошёл!", font=("Segoe UI", 9, "italic"), fill=self.colors["border"], anchor="n")
+            self.canvas.create_text(w//2, current_y, text=_("⚠ Дедлайн уже прошёл!"), font=("Segoe UI", 9, "italic"), fill=self.colors["border"], anchor="n")
 
         # 10. Кнопка
-        btn = tk.Button(self, text="✔ Выполнено", command=self.complete, bg=self.colors["btn"], fg="white", 
+        btn = tk.Button(self, text=_("✔ Выполнено"), command=self.complete, bg=self.colors["btn"], fg="white", 
                         activebackground="#388E3C" if not self.is_overdue else "#B71C1C", activeforeground="white",
                         relief="flat", font=("Segoe UI", 10, "bold"), cursor="hand2")
         # Кнопка прижата влево, чтобы правый нижний угол бумажки с градиентом был виден

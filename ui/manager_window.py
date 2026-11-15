@@ -10,6 +10,7 @@ except ImportError:  # pragma: no cover
     ImageTk = None
 
 from core import storage
+from core.i18n import _
 from ui.sticker_window import get_resource_path
 
 CARTRIDGE = "assets/cartridge.png"
@@ -33,6 +34,8 @@ GREEN = "#66BB6A"
 GREEN_DARK = "#43A047"
 RED = "#EF5350"
 RED_DARK = "#C62828"
+PRIMARY = "#F4A7B9"
+PRIMARY_DARK = "#EC8FA6"
 OFF = "#E0E0E0"
 OFF_DARK = "#CFCFCF"
 
@@ -165,7 +168,7 @@ class ManagerWindow(tk.Toplevel):
 
         tk.Label(
             self.panel,
-            text="РЕДАКТОР НАПОМИНАНИЙ",
+            text=_("РЕДАКТОР НАПОМИНАНИЙ"),
             bg=PANEL_BG,
             fg=PANEL_BORDER,
             font=("Segoe UI", 11, "bold"),
@@ -197,11 +200,11 @@ class ManagerWindow(tk.Toplevel):
         bottom = tk.Frame(self.panel, bg=PANEL_BG)
         bottom.grid(row=2, column=0, sticky="ew", pady=6)
         self.btn_active = tk.Button(
-            bottom, text="Актуальные", command=lambda: self._set_filter("active"),
+            bottom, text=_("Актуальные"), command=lambda: self._set_filter("active"),
             font=("Segoe UI", 9, "bold"), relief="flat", bd=0, height=1, padx=12, cursor="hand2",
         )
         self.btn_done = tk.Button(
-            bottom, text="Завершённые", command=lambda: self._set_filter("done"),
+            bottom, text=_("Завершённые"), command=lambda: self._set_filter("done"),
             font=("Segoe UI", 9, "bold"), relief="flat", bd=0, height=1, padx=12, cursor="hand2",
         )
         self.btn_active.pack(side="left", expand=True, fill="x", padx=(6, 3))
@@ -274,7 +277,7 @@ class ManagerWindow(tk.Toplevel):
 
         if not items:
             tk.Label(
-                self.list_inner, text="Здесь пусто", bg=PANEL_BG, fg=DATE_COLOR,
+                self.list_inner, text=_("Здесь пусто"), bg=PANEL_BG, fg=DATE_COLOR,
                 font=("Segoe UI", 10, "italic"),
             ).pack(pady=24)
         else:
@@ -316,9 +319,9 @@ class ManagerWindow(tk.Toplevel):
 
         if sticker.get("status") != storage.STATUS_COMPLETED:
             edit_btn = self._icon_button(controls, "✎", PANEL_BORDER, lambda: self._edit(sticker))
-            self._add_tooltip(edit_btn, "Редактировать")
+            self._add_tooltip(edit_btn, _("Редактировать"))
         del_btn = self._icon_button(controls, "✕", RED_DARK, lambda: self._delete(sticker.get("id")))
-        self._add_tooltip(del_btn, "Удалить")
+        self._add_tooltip(del_btn, _("Удалить"))
 
     def _icon_button(self, parent, text, color, command):
         button = tk.Label(
