@@ -1,6 +1,6 @@
 import os
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox
 
 try:
     from PIL import Image, ImageTk
@@ -18,6 +18,7 @@ from ui.manager_window import (
     CUTOUT,
     DISPLAY_WIDTH,
     IMAGE_SIZE,
+    make_scrollbar,
     tint_cartridge,
 )
 
@@ -116,7 +117,7 @@ class SettingsWindow(tk.Toplevel):
         list_wrap.grid_columnconfigure(0, weight=1)
 
         self.list_canvas = tk.Canvas(list_wrap, bg=t["panel_bg"], highlightthickness=0)
-        scroll = ttk.Scrollbar(list_wrap, orient="vertical", command=self.list_canvas.yview)
+        scroll = make_scrollbar(list_wrap, self.list_canvas.yview, t)
         self.list_inner = tk.Frame(self.list_canvas, bg=t["panel_bg"])
         self.list_window = self.list_canvas.create_window((0, 0), window=self.list_inner, anchor="nw")
         self.list_canvas.configure(yscrollcommand=scroll.set)

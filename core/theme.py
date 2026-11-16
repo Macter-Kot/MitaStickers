@@ -24,7 +24,13 @@ THEMES = {
         "panel_border": "#F06292",  # Рамка панели
         "card_bg": "#FFFFFF",       # Белый фон карточек с настройками
         "card_border": "#FBC02D",   # Желтая рамка карточек
-        
+
+        # --- Скроллбар ---
+        "scrollbar_bg": "#F6C6CF",          # Желоб (trough)
+        "scrollbar_thumb": "#F4A7B9",       # Ползунок
+        "scrollbar_thumb_active": "#EC8FA6",  # Ползунок при наведении
+        "scrollbar_arrow": "#8D6E63",       # Стрелочки
+
         # --- Картридж ---
         "cartridge_tint": None      # Оригинальный цвет картинки
     },
@@ -49,10 +55,16 @@ THEMES = {
         "off_dark": "#2E2352",
         
         # --- Панели и Карточки ---
-        "panel_border": "#5E4596",  # Фиолетовая рамка
+        "panel_border": "#B39DDB",  # Фиолетовая рамка/ заголовки
         "card_bg": "#3C3C4C",       # Фон карточек
         "card_border": "#5E4596",   
-        
+
+        # --- Скроллбар ---
+        "scrollbar_bg": "#251C43",          # Желоб (trough)
+        "scrollbar_thumb": "#7B5CB8",       # Ползунок
+        "scrollbar_thumb_active": "#5E4596",  # Ползунок при наведении
+        "scrollbar_arrow": "#B39DDB",       # Стрелочки
+
         # --- Картридж ---
         "cartridge_tint": "#483889" # Цвет тонировки
     }

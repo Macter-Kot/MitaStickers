@@ -55,6 +55,44 @@ def tint_cartridge(image, tint_hex, factor=0.45):
     return blended
 
 
+def make_scrollbar(parent, command, theme, orient="vertical"):
+    """Возвращает ttk.Scrollbar, окрашенный под текущую тему (через движок clam).
+
+    Использует отдельный класс стиля, поэтому не влияет на другие ttk-виджеты.
+    """
+    style = ttk.Style(parent)
+    try:
+        if style.theme_use() != "clam":
+            style.theme_use("clam")
+    except tk.TclError:
+        pass
+
+    suffix = "Vertical" if orient == "vertical" else "Horizontal"
+    name = "Mita.{}.TScrollbar".format(suffix)
+    thumb = theme.get("scrollbar_thumb", "#CCCCCC")
+    trough = theme.get("scrollbar_bg", "#EEEEEE")
+    arrow = theme.get("scrollbar_arrow", "#555555")
+    active = theme.get("scrollbar_thumb_active", thumb)
+
+    style.configure(
+        name,
+        background=thumb,
+        troughcolor=trough,
+        bordercolor=trough,
+        arrowcolor=arrow,
+        lightcolor=thumb,
+        darkcolor=thumb,
+        relief="flat",
+        gripcount=0,
+    )
+    style.map(
+        name,
+        background=[("active", active), ("pressed", active)],
+        arrowcolor=[("active", arrow), ("pressed", arrow)],
+    )
+    return ttk.Scrollbar(parent, orient=orient, command=command, style=name)
+
+
 class Tooltip:
     def __init__(self, widget, text):
         self.widget = widget
@@ -185,7 +223,7 @@ class ManagerWindow(tk.Toplevel):
         list_wrap.grid_columnconfigure(0, weight=1)
 
         self.list_canvas = tk.Canvas(list_wrap, bg=t["panel_bg"], highlightthickness=0)
-        scroll = ttk.Scrollbar(list_wrap, orient="vertical", command=self.list_canvas.yview)
+        scroll = make_scrollbar(list_wrap, self.list_canvas.yview, t)
         self.list_inner = tk.Frame(self.list_canvas, bg=t["panel_bg"])
         self.list_window = self.list_canvas.create_window((0, 0), window=self.list_inner, anchor="nw")
         self.list_canvas.configure(yscrollcommand=scroll.set)
