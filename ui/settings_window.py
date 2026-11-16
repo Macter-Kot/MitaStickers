@@ -154,8 +154,8 @@ class SettingsWindow(tk.Toplevel):
         close_x = x1 - 15
         close_y = y0 - 65
         close_id = self.canvas.create_text(
-            close_x, close_y, text="✕", font=("Arial Black", 18, "bold"),
-            fill=t["text"], activefill=t["red"],
+            close_x, close_y, text="⊗", font=("Arial", 30, "bold"),
+            fill=t["close_btn_color"], activefill=t["red"],
         )
         self.canvas.tag_bind(close_id, "<Button-1>", lambda event: self.destroy())
         self.canvas.tag_bind(close_id, "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
