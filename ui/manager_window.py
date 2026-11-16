@@ -11,6 +11,7 @@ except ImportError:  # pragma: no cover
 
 from core import storage
 from core.i18n import _
+from core.theme import get_theme
 from ui.sticker_window import get_resource_path
 
 CARTRIDGE = "assets/cartridge.png"
@@ -23,21 +24,6 @@ DISPLAY_WIDTH = 880
 
 THUMB_SIZE = (84, 60)
 CHROMA_KEY = "#FF00FF"
-
-PANEL_BG = "#FFF8E1"
-PANEL_BORDER = "#F06292"
-CARD_BG = "#FFFFFF"
-CARD_BORDER = "#FBC02D"
-TEXT_COLOR = "#3E2723"
-DATE_COLOR = "#8D6E63"
-GREEN = "#66BB6A"
-GREEN_DARK = "#43A047"
-RED = "#EF5350"
-RED_DARK = "#C62828"
-PRIMARY = "#F4A7B9"
-PRIMARY_DARK = "#EC8FA6"
-OFF = "#E0E0E0"
-OFF_DARK = "#CFCFCF"
 
 _instance = None
 
@@ -52,6 +38,21 @@ def open_manager_window(root):
         return _instance
     _instance = ManagerWindow(root)
     return _instance
+
+
+def tint_cartridge(image, tint_hex, factor=0.45):
+    """Тонирует картридж в заданный цвет, сохраняя прозрачность (alpha) и оттенки."""
+    if not tint_hex:
+        return image
+    try:
+        tint = tuple(int(tint_hex[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+    except (ValueError, IndexError):
+        return image
+    alpha = image.getchannel("A")
+    solid = Image.new("RGBA", image.size, tint)
+    blended = Image.blend(image.convert("RGBA"), solid, factor)
+    blended.putalpha(alpha)
+    return blended
 
 
 class Tooltip:
@@ -109,6 +110,7 @@ class ManagerWindow(tk.Toplevel):
         super().__init__(root)
 
         self.root = root
+        self.theme = get_theme()
         self.filter_mode = "active"
         self._bg_photo = None
         self._thumbs = []
@@ -145,6 +147,8 @@ class ManagerWindow(tk.Toplevel):
 
     # ---------- интерфейс ----------
     def _build(self):
+        t = self.theme
+
         self.canvas = tk.Canvas(
             self, width=self.disp_w, height=self.disp_h, bg=CHROMA_KEY, highlightthickness=0
         )
@@ -156,12 +160,12 @@ class ManagerWindow(tk.Toplevel):
         if self._bg_photo is not None:
             self.canvas.create_image(0, 0, image=self._bg_photo, anchor="nw")
         else:
-            self.canvas.create_rectangle(0, 0, self.disp_w, self.disp_h, fill="#FBC02D", outline="")
+            self.canvas.create_rectangle(0, 0, self.disp_w, self.disp_h, fill=t["panel_border"], outline="")
 
         x0, y0, x1, y1 = self._cutout_rect()
 
         # панель со списком внутри выреза
-        self.panel = tk.Frame(self, bg=PANEL_BG, highlightthickness=2, highlightbackground=PANEL_BORDER)
+        self.panel = tk.Frame(self, bg=t["panel_bg"], highlightthickness=2, highlightbackground=t["panel_border"])
         self.panel.place(x=x0, y=y0, width=x1 - x0, height=y1 - y0)
         self.panel.grid_rowconfigure(1, weight=1)
         self.panel.grid_columnconfigure(0, weight=1)
@@ -169,20 +173,20 @@ class ManagerWindow(tk.Toplevel):
         tk.Label(
             self.panel,
             text=_("РЕДАКТОР НАПОМИНАНИЙ"),
-            bg=PANEL_BG,
-            fg=PANEL_BORDER,
+            bg=t["panel_bg"],
+            fg=t["panel_border"],
             font=("Segoe UI", 11, "bold"),
             pady=6,
         ).grid(row=0, column=0, sticky="ew")
 
-        list_wrap = tk.Frame(self.panel, bg=PANEL_BG)
+        list_wrap = tk.Frame(self.panel, bg=t["panel_bg"])
         list_wrap.grid(row=1, column=0, sticky="nsew", padx=6)
         list_wrap.grid_rowconfigure(0, weight=1)
         list_wrap.grid_columnconfigure(0, weight=1)
 
-        self.list_canvas = tk.Canvas(list_wrap, bg=PANEL_BG, highlightthickness=0)
+        self.list_canvas = tk.Canvas(list_wrap, bg=t["panel_bg"], highlightthickness=0)
         scroll = ttk.Scrollbar(list_wrap, orient="vertical", command=self.list_canvas.yview)
-        self.list_inner = tk.Frame(self.list_canvas, bg=PANEL_BG)
+        self.list_inner = tk.Frame(self.list_canvas, bg=t["panel_bg"])
         self.list_window = self.list_canvas.create_window((0, 0), window=self.list_inner, anchor="nw")
         self.list_canvas.configure(yscrollcommand=scroll.set)
         self.list_canvas.grid(row=0, column=0, sticky="nsew")
@@ -197,7 +201,7 @@ class ManagerWindow(tk.Toplevel):
         )
         self._bind_wheel(self.list_canvas)
 
-        bottom = tk.Frame(self.panel, bg=PANEL_BG)
+        bottom = tk.Frame(self.panel, bg=t["panel_bg"])
         bottom.grid(row=2, column=0, sticky="ew", pady=6)
         self.btn_active = tk.Button(
             bottom, text=_("Актуальные"), command=lambda: self._set_filter("active"),
@@ -212,14 +216,12 @@ class ManagerWindow(tk.Toplevel):
         self._update_toggle_styles()
 
         # крестик закрытия на корпусе картриджа (справа сверху)
-        close_x = x1 - 15  # Координата X
-        close_y = y0 - 65  # Координата Y
-        
+        close_x = x1 - 15
+        close_y = y0 - 65
         close_id = self.canvas.create_text(
             close_x, close_y, text="✕", font=("Arial Black", 18, "bold"),
-            fill=PANEL_BORDER, activefill=RED_DARK
+            fill=t["text"], activefill=t["red"],
         )
-        # Назначаем клик и курсор
         self.canvas.tag_bind(close_id, "<Button-1>", lambda event: self.destroy())
         self.canvas.tag_bind(close_id, "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
         self.canvas.tag_bind(close_id, "<Leave>", lambda e: self.canvas.config(cursor=""))
@@ -244,18 +246,19 @@ class ManagerWindow(tk.Toplevel):
         self.refresh()
 
     def _update_toggle_styles(self):
+        t = self.theme
         active = self.filter_mode == "active"
         self.btn_active.configure(
-            bg=GREEN if active else OFF,
-            fg="white" if active else "#555555",
-            activebackground=GREEN_DARK if active else OFF_DARK,
-            activeforeground="white" if active else "#333333",
+            bg=t["green"] if active else t["off"],
+            fg=t["text"] if not active else "white",
+            activebackground=t["green_dark"] if active else t["off_dark"],
+            activeforeground="white" if active else t["text"],
         )
         self.btn_done.configure(
-            bg=RED if not active else OFF,
-            fg="white" if not active else "#555555",
-            activebackground=RED_DARK if not active else OFF_DARK,
-            activeforeground="white" if not active else "#333333",
+            bg=t["red"] if not active else t["off"],
+            fg=t["text"] if active else "white",
+            activebackground=t["red_dark"] if not active else t["off_dark"],
+            activeforeground=t["text"] if active else "white",
         )
 
     # ---------- список ----------
@@ -277,7 +280,7 @@ class ManagerWindow(tk.Toplevel):
 
         if not items:
             tk.Label(
-                self.list_inner, text=_("Здесь пусто"), bg=PANEL_BG, fg=DATE_COLOR,
+                self.list_inner, text=_("Здесь пусто"), bg=self.theme["panel_bg"], fg=self.theme["muted"],
                 font=("Segoe UI", 10, "italic"),
             ).pack(pady=24)
         else:
@@ -287,51 +290,52 @@ class ManagerWindow(tk.Toplevel):
         self.list_canvas.yview_moveto(0)
 
     def _build_card(self, sticker):
-        card = tk.Frame(self.list_inner, bg=CARD_BG, highlightthickness=1, highlightbackground=CARD_BORDER)
+        t = self.theme
+        card = tk.Frame(self.list_inner, bg=t["card_bg"], highlightthickness=1, highlightbackground=t["card_border"])
         card.pack(fill="x", padx=4, pady=4)
         card.grid_columnconfigure(0, weight=1)
 
-        info = tk.Frame(card, bg=CARD_BG)
+        info = tk.Frame(card, bg=t["card_bg"])
         info.grid(row=0, column=0, sticky="nsew", padx=(10, 6), pady=8)
         tk.Label(
-            info, text=sticker.get("text", ""), bg=CARD_BG, fg=TEXT_COLOR,
+            info, text=sticker.get("text", ""), bg=t["card_bg"], fg=t["text"],
             font=("Segoe UI", 10, "bold"), wraplength=420, justify="left", anchor="w",
         ).pack(anchor="w")
 
         date_part, time_part = self._format_datetime(sticker.get("datetime"))
-        meta = tk.Frame(info, bg=CARD_BG)
+        meta = tk.Frame(info, bg=t["card_bg"])
         meta.pack(anchor="w", pady=(4, 0))
         tk.Label(
             meta, text=" ".join(part for part in (date_part, time_part) if part),
-            bg=CARD_BG, fg=DATE_COLOR, font=("Segoe UI", 8),
+            bg=t["card_bg"], fg=t["muted"], font=("Segoe UI", 8),
         ).pack(side="left")
         if sticker.get("repeat", storage.REPEAT_NONE) not in ("", storage.REPEAT_NONE, None):
             tk.Label(
-                meta, text="\u21bb", bg=CARD_BG, fg="#2E7D32", font=("Segoe UI", 10, "bold"),
+                meta, text="\u21bb", bg=t["card_bg"], fg=t["green"], font=("Segoe UI", 10, "bold"),
             ).pack(side="left", padx=(6, 0))
 
         thumb = self._load_thumb(sticker.get("image"))
         if thumb is not None:
-            tk.Label(card, image=thumb, bg=CARD_BG).grid(row=0, column=1, padx=6, pady=8)
+            tk.Label(card, image=thumb, bg=t["card_bg"]).grid(row=0, column=1, padx=6, pady=8)
 
-        controls = tk.Frame(card, bg=CARD_BG)
+        controls = tk.Frame(card, bg=t["card_bg"])
         controls.grid(row=0, column=2, sticky="n", padx=(0, 8), pady=8)
 
         if sticker.get("status") != storage.STATUS_COMPLETED:
-            edit_btn = self._icon_button(controls, "✎", PANEL_BORDER, lambda: self._edit(sticker))
+            edit_btn = self._icon_button(controls, "✎", t["muted"], lambda: self._edit(sticker))
             self._add_tooltip(edit_btn, _("Редактировать"))
-        del_btn = self._icon_button(controls, "✕", RED_DARK, lambda: self._delete(sticker.get("id")))
+        del_btn = self._icon_button(controls, "✕", t["red_dark"], lambda: self._delete(sticker.get("id")))
         self._add_tooltip(del_btn, _("Удалить"))
 
     def _icon_button(self, parent, text, color, command):
         button = tk.Label(
-            parent, text=text, bg=CARD_BG, fg=color, font=("Segoe UI", 12, "bold"),
+            parent, text=text, bg=self.theme["card_bg"], fg=color, font=("Segoe UI", 12, "bold"),
             cursor="hand2", width=2,
         )
         button.pack(pady=1)
         button.bind("<Button-1>", lambda event: command())
-        button.bind("<Enter>", lambda event: button.config(bg="#F5F5F5"))
-        button.bind("<Leave>", lambda event: button.config(bg=CARD_BG))
+        button.bind("<Enter>", lambda event: button.config(bg=self.theme["panel_bg"]))
+        button.bind("<Leave>", lambda event: button.config(bg=self.theme["card_bg"]))
         return button
 
     def _add_tooltip(self, widget, text):
@@ -365,6 +369,9 @@ class ManagerWindow(tk.Toplevel):
 
         resample = getattr(Image, "LANCZOS", getattr(Image, "BICUBIC", 3))
         image = image.resize((self.disp_w, self.disp_h), resample)
+
+        # Тонировка под тему (для фиолетовой) — сохраняет текстуры и прозрачность
+        image = tint_cartridge(image, self.theme.get("cartridge_tint"))
 
         key = tuple(int(CHROMA_KEY[i:i + 2], 16) for i in (1, 3, 5))
         key_image = Image.new("RGB", image.size, key)

@@ -10,6 +10,7 @@ except ImportError:  # pragma: no cover
 
 from core import autostart, i18n, settings
 from core.i18n import _
+from core.theme import THEME_LABELS, get_theme, get_theme_name, set_theme
 from ui.sticker_window import get_resource_path
 from ui.manager_window import (
     CARTRIDGE,
@@ -17,18 +18,7 @@ from ui.manager_window import (
     CUTOUT,
     DISPLAY_WIDTH,
     IMAGE_SIZE,
-    PANEL_BG,
-    PANEL_BORDER,
-    CARD_BG,
-    CARD_BORDER,
-    TEXT_COLOR,
-    DATE_COLOR,
-    GREEN,
-    GREEN_DARK,
-    RED,
-    RED_DARK,
-    PRIMARY,
-    PRIMARY_DARK,
+    tint_cartridge,
 )
 
 _instance = None
@@ -50,6 +40,7 @@ class SettingsWindow(tk.Toplevel):
         super().__init__(root)
 
         self.root = root
+        self.theme = get_theme()
         self._bg_photo = None
         self._tooltips = []
         self._drag_x = 0
@@ -88,6 +79,8 @@ class SettingsWindow(tk.Toplevel):
 
     # ---------- интерфейс ----------
     def _build(self):
+        t = self.theme
+
         self.canvas = tk.Canvas(
             self, width=self.disp_w, height=self.disp_h, bg=CHROMA_KEY, highlightthickness=0
         )
@@ -99,11 +92,11 @@ class SettingsWindow(tk.Toplevel):
         if self._bg_photo is not None:
             self.canvas.create_image(0, 0, image=self._bg_photo, anchor="nw")
         else:
-            self.canvas.create_rectangle(0, 0, self.disp_w, self.disp_h, fill="#FBC02D", outline="")
+            self.canvas.create_rectangle(0, 0, self.disp_w, self.disp_h, fill=t["panel_border"], outline="")
 
         x0, y0, x1, y1 = self._cutout_rect()
 
-        self.panel = tk.Frame(self, bg=PANEL_BG, highlightthickness=2, highlightbackground=PANEL_BORDER)
+        self.panel = tk.Frame(self, bg=t["panel_bg"], highlightthickness=2, highlightbackground=t["panel_border"])
         self.panel.place(x=x0, y=y0, width=x1 - x0, height=y1 - y0)
         self.panel.grid_rowconfigure(1, weight=1)
         self.panel.grid_columnconfigure(0, weight=1)
@@ -111,20 +104,20 @@ class SettingsWindow(tk.Toplevel):
         tk.Label(
             self.panel,
             text=_("НАСТРОЙКИ"),
-            bg=PANEL_BG,
-            fg=PANEL_BORDER,
+            bg=t["panel_bg"],
+            fg=t["panel_border"],
             font=("Segoe UI", 11, "bold"),
             pady=6,
         ).grid(row=0, column=0, sticky="ew")
 
-        list_wrap = tk.Frame(self.panel, bg=PANEL_BG)
+        list_wrap = tk.Frame(self.panel, bg=t["panel_bg"])
         list_wrap.grid(row=1, column=0, sticky="nsew", padx=6)
         list_wrap.grid_rowconfigure(0, weight=1)
         list_wrap.grid_columnconfigure(0, weight=1)
 
-        self.list_canvas = tk.Canvas(list_wrap, bg=PANEL_BG, highlightthickness=0)
+        self.list_canvas = tk.Canvas(list_wrap, bg=t["panel_bg"], highlightthickness=0)
         scroll = ttk.Scrollbar(list_wrap, orient="vertical", command=self.list_canvas.yview)
-        self.list_inner = tk.Frame(self.list_canvas, bg=PANEL_BG)
+        self.list_inner = tk.Frame(self.list_canvas, bg=t["panel_bg"])
         self.list_window = self.list_canvas.create_window((0, 0), window=self.list_inner, anchor="nw")
         self.list_canvas.configure(yscrollcommand=scroll.set)
         self.list_canvas.grid(row=0, column=0, sticky="nsew")
@@ -141,17 +134,17 @@ class SettingsWindow(tk.Toplevel):
 
         self._build_list()
 
-        bottom = tk.Frame(self.panel, bg=PANEL_BG)
+        bottom = tk.Frame(self.panel, bg=t["panel_bg"])
         bottom.grid(row=2, column=0, sticky="ew", pady=6)
         self.btn_save = tk.Button(
             bottom, text=_("Сохранить"), command=self._save,
             font=("Segoe UI", 9, "bold"), relief="flat", bd=0, height=1, padx=12, cursor="hand2",
-            bg=GREEN, fg="white", activebackground=GREEN_DARK, activeforeground="white",
+            bg=t["green"], fg="white", activebackground=t["green_dark"], activeforeground="white",
         )
         self.btn_cancel = tk.Button(
             bottom, text=_("Отмена"), command=self.destroy,
             font=("Segoe UI", 9, "bold"), relief="flat", bd=0, height=1, padx=12, cursor="hand2",
-            bg=RED, fg="white", activebackground=RED_DARK, activeforeground="white",
+            bg=t["red"], fg="white", activebackground=t["red_dark"], activeforeground="white",
         )
         self.btn_save.pack(side="left", expand=True, fill="x", padx=(6, 3))
         self.btn_cancel.pack(side="left", expand=True, fill="x", padx=(3, 6))
@@ -161,7 +154,7 @@ class SettingsWindow(tk.Toplevel):
         close_y = y0 - 65
         close_id = self.canvas.create_text(
             close_x, close_y, text="✕", font=("Arial Black", 18, "bold"),
-            fill=PANEL_BORDER, activefill=RED_DARK,
+            fill=t["text"], activefill=t["red"],
         )
         self.canvas.tag_bind(close_id, "<Button-1>", lambda event: self.destroy())
         self.canvas.tag_bind(close_id, "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
@@ -169,32 +162,65 @@ class SettingsWindow(tk.Toplevel):
 
     # ---------- карточки ----------
     def _card(self, title, subtitle):
-        card = tk.Frame(self.list_inner, bg=CARD_BG, highlightthickness=1, highlightbackground=CARD_BORDER)
+        t = self.theme
+        card = tk.Frame(self.list_inner, bg=t["card_bg"], highlightthickness=1, highlightbackground=t["card_border"])
         card.pack(fill="x", padx=4, pady=4)
 
-        info = tk.Frame(card, bg=CARD_BG)
+        info = tk.Frame(card, bg=t["card_bg"])
         info.pack(side="left", fill="x", expand=True, padx=(12, 6), pady=10)
-        tk.Label(info, text=title, bg=CARD_BG, fg=TEXT_COLOR, font=("Segoe UI", 10, "bold")).pack(anchor="w")
-        tk.Label(info, text=subtitle, bg=CARD_BG, fg=DATE_COLOR, font=("Segoe UI", 8)).pack(
+        tk.Label(info, text=title, bg=t["card_bg"], fg=t["text"], font=("Segoe UI", 10, "bold")).pack(anchor="w")
+        tk.Label(info, text=subtitle, bg=t["card_bg"], fg=t["muted"], font=("Segoe UI", 8)).pack(
             anchor="w", pady=(2, 0)
         )
         return card
 
+    def _option_menu(self, parent, variable, values, command=None, width=12):
+        t = self.theme
+        menu = tk.OptionMenu(parent, variable, *values, command=command) if command else tk.OptionMenu(
+            parent, variable, *values
+        )
+        menu.configure(
+            bg=t["panel_bg"], fg=t["text"], activebackground=t["primary"], activeforeground="white",
+            relief="flat", bd=0, highlightthickness=1, highlightbackground=t["card_border"],
+            font=("Segoe UI", 9), padx=8, pady=2, cursor="hand2", anchor="w", width=width,
+        )
+        menu["menu"].configure(
+            bg=t["panel_bg"], fg=t["text"], activebackground=t["primary"], activeforeground="white",
+            font=("Segoe UI", 9), bd=0,
+        )
+        return menu
+
     def _build_list(self):
         self._add_autostart_card()
+        self._add_theme_card()
         self._add_language_card()
 
     def _add_autostart_card(self):
+        t = self.theme
         card = self._card(_("Добавить в автозагрузку"), _("Запускать MitaStickers при входе в Windows"))
 
         self.toggle = tk.Label(
             card, text=" ", width=3, height=1, font=("Segoe UI", 13, "bold"),
-            bg=CARD_BG, fg="white", cursor="hand2", highlightthickness=2,
-            highlightbackground="#BDBDBD",
+            bg=t["card_bg"], fg="white", cursor="hand2", highlightthickness=2,
+            highlightbackground=t["muted"],
         )
         self.toggle.pack(side="right", padx=(6, 12))
         self.toggle.bind("<Button-1>", lambda event: self._toggle_autostart())
         self._update_toggle()
+
+    def _add_theme_card(self):
+        card = self._card(_("Тема"), _("Тема оформления"))
+
+        self._theme_code_by_label = {_(source): code for code, source in THEME_LABELS.items()}
+        labels = list(self._theme_code_by_label.keys())
+        current_code = get_theme_name()
+        current_label = next(
+            (label for label, code in self._theme_code_by_label.items() if code == current_code),
+            labels[0],
+        )
+        self.theme_var = tk.StringVar(value=current_label)
+        menu = self._option_menu(card, self.theme_var, labels, command=self._on_theme_change, width=18)
+        menu.pack(side="right", padx=(6, 12))
 
     def _add_language_card(self):
         card = self._card(_("Язык"), _("Язык интерфейса"))
@@ -202,17 +228,7 @@ class SettingsWindow(tk.Toplevel):
         langs = i18n.available_languages()
         self._lang_code_by_label = {name: code for code, name in langs.items()}
         self.lang_var = tk.StringVar(value=langs.get(i18n.get_language(), langs["ru"]))
-
-        menu = tk.OptionMenu(card, self.lang_var, *langs.values(), command=self._on_language_change)
-        menu.configure(
-            bg=PANEL_BG, fg=TEXT_COLOR, activebackground=PRIMARY, activeforeground="white",
-            relief="flat", bd=0, highlightthickness=1, highlightbackground=CARD_BORDER,
-            font=("Segoe UI", 9), padx=8, pady=2, cursor="hand2", anchor="w", width=10,
-        )
-        menu["menu"].configure(
-            bg=PANEL_BG, fg=TEXT_COLOR, activebackground=PRIMARY, activeforeground="white",
-            font=("Segoe UI", 9), bd=0,
-        )
+        menu = self._option_menu(card, self.lang_var, list(langs.values()), command=self._on_language_change, width=10)
         menu.pack(side="right", padx=(6, 12))
 
     def _toggle_autostart(self):
@@ -220,10 +236,25 @@ class SettingsWindow(tk.Toplevel):
         self._update_toggle()
 
     def _update_toggle(self):
+        t = self.theme
         if self.autostart_enabled:
-            self.toggle.configure(text="\u2714", bg=GREEN, highlightbackground=GREEN_DARK)
+            self.toggle.configure(text="\u2714", bg=t["green"], highlightbackground=t["green_dark"])
         else:
-            self.toggle.configure(text=" ", bg=CARD_BG, highlightbackground="#BDBDBD")
+            self.toggle.configure(text=" ", bg=t["card_bg"], highlightbackground=t["muted"])
+
+    def _on_theme_change(self, label):
+        code = self._theme_code_by_label.get(label)
+        if not code or code == get_theme_name():
+            return
+        set_theme(code)
+        messagebox.showinfo(
+            _("Тема"),
+            _("Перезапустите приложение, чтобы применить тему."),
+            parent=self,
+        )
+        root = self.root
+        self.destroy()
+        root.after(10, lambda: open_settings_window(root))
 
     def _on_language_change(self, label):
         code = self._lang_code_by_label.get(label)
@@ -280,6 +311,8 @@ class SettingsWindow(tk.Toplevel):
 
         resample = getattr(Image, "LANCZOS", getattr(Image, "BICUBIC", 3))
         image = image.resize((self.disp_w, self.disp_h), resample)
+
+        image = tint_cartridge(image, self.theme.get("cartridge_tint"))
 
         key = tuple(int(CHROMA_KEY[i:i + 2], 16) for i in (1, 3, 5))
         key_image = Image.new("RGB", image.size, key)

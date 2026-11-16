@@ -12,26 +12,14 @@ except ImportError:  # pragma: no cover
 
 from core import storage
 from core.i18n import _
+from core.theme import get_theme
 from ui.sticker_window import get_resource_path
 from ui.manager_window import Tooltip
 
 APP_ICON = get_resource_path("assets/icon.ico")
 LOGO = "assets/logo.png"
 
-# --- ПАЛИТРА (в стиле картриджей) ---
 FONT = "Segoe UI"
-WIN_BG = "#FADDE1"
-HEADER_BG = "#F6C6CF"
-BORDER = "#E8A3B4"
-PANEL_BG = "#FFF8E1"
-TEXT = "#3E2723"
-MUTED = "#8D6E63"
-PRIMARY = "#F4A7B9"
-PRIMARY_DARK = "#EC8FA6"
-GREEN = "#66BB6A"
-GREEN_DARK = "#43A047"
-RED = "#EF5350"
-RED_DARK = "#C62828"
 
 # Канонические значения стилей (они же хранятся в JSON) и их исходные подписи
 STYLE_VALUES = ["Желтый", "Розовый", "Фиолетовый"]
@@ -75,6 +63,7 @@ class MainWindow(tk.Toplevel):
         super().__init__(root)
 
         self.root = root
+        self.theme = get_theme()
         self.sticker = sticker or None
         self.editing = sticker is not None
         self.on_saved = on_saved
@@ -87,7 +76,7 @@ class MainWindow(tk.Toplevel):
         self.resizable(False, False)
         self.attributes("-topmost", True)
         self.overrideredirect(True)
-        self.configure(bg=BORDER)
+        self.configure(bg=self.theme["border"])
         self._apply_icon()
 
         self.image_var = tk.StringVar()
@@ -147,51 +136,53 @@ class MainWindow(tk.Toplevel):
 
     # ---------- сборка интерфейса ----------
     def _build(self):
-        container = tk.Frame(self, bg=WIN_BG)
+        container = tk.Frame(self, bg=self.theme["bg_main"])
         container.pack(fill="both", expand=True, padx=1, pady=1)
 
         self._build_header(container)
         self._build_body(container)
 
     def _build_header(self, parent):
-        header = tk.Frame(parent, bg=HEADER_BG)
+        t = self.theme
+        header = tk.Frame(parent, bg=t["header_bg"])
         header.pack(fill="x")
 
         self._logo_photo = self._load_logo(34)
         if self._logo_photo is not None:
-            logo = tk.Label(header, image=self._logo_photo, bg=HEADER_BG)
+            logo = tk.Label(header, image=self._logo_photo, bg=t["header_bg"])
         else:
-            logo = tk.Label(header, text="MitaStickers", bg=HEADER_BG, fg=TEXT, font=(FONT, 12, "bold"))
+            logo = tk.Label(header, text="MitaStickers", bg=t["header_bg"], fg=t["text"], font=(FONT, 12, "bold"))
         logo.pack(side="left", padx=(12, 6), pady=7)
 
         subtitle = tk.Label(
             header,
             text=_("Редактирование") if self.editing else _("Новый стикер"),
-            bg=HEADER_BG, fg=MUTED, font=(FONT, 9, "italic"),
+            bg=t["header_bg"], fg=t["muted"], font=(FONT, 9, "italic"),
         )
         subtitle.pack(side="left", pady=(16, 0))
 
-        close_btn = self._header_button(header, "\u2716", self.destroy, RED_DARK)
+        close_btn = self._header_button(header, "\u2716", self.destroy, t["red_dark"])
         close_btn.pack(side="right", padx=(0, 8), pady=6)
-        min_btn = self._header_button(header, "\u2014", self._minimize, PRIMARY_DARK)
+        min_btn = self._header_button(header, "\u2014", self._minimize, t["primary_dark"])
         min_btn.pack(side="right", pady=6)
 
         for widget in (header, logo, subtitle):
             self._make_draggable(widget)
 
     def _build_body(self, parent):
-        body = tk.Frame(parent, bg=WIN_BG, padx=16, pady=14)
+        t = self.theme
+        body = tk.Frame(parent, bg=t["bg_main"], padx=16, pady=14)
         body.pack(fill="both", expand=True)
         body.grid_columnconfigure(0, weight=1)
         body.grid_columnconfigure(1, weight=1)
         body.grid_columnconfigure(2, weight=1)
 
-        tk.Label(body, text=_("Текст напоминания:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
+        tk.Label(body, text=_("Текст напоминания:"), bg=t["bg_main"], fg=t["text"], font=(FONT, 10, "bold")).grid(
             row=0, column=0, columnspan=2, sticky="w"
         )
         self.btn_settings = tk.Button(
-            body, text="\u2699", command=self._open_settings, bg=PRIMARY, fg="white",
-            activebackground=PRIMARY_DARK, activeforeground="white", relief="flat", bd=0,
+            body, text="\u2699", command=self._open_settings, bg=t["primary"], fg="white",
+            activebackground=t["primary_dark"], activeforeground="white", relief="flat", bd=0,
             font=(FONT, 11, "bold"), width=3, cursor="hand2",
         )
         self.btn_settings.grid(row=0, column=2, sticky="e")
@@ -199,8 +190,8 @@ class MainWindow(tk.Toplevel):
 
         self.text_widget = tk.Text(
             body, width=44, height=5, wrap="word", font=(FONT, 10),
-            bg=PANEL_BG, fg=TEXT, relief="flat", insertbackground=TEXT,
-            highlightthickness=1, highlightbackground=BORDER, highlightcolor=PRIMARY,
+            bg=t["panel_bg"], fg=t["text"], relief="flat", insertbackground=t["text"],
+            highlightthickness=1, highlightbackground=t["border"], highlightcolor=t["primary"],
             padx=6, pady=4,
         )
         self.text_widget.grid(row=1, column=0, columnspan=3, sticky="we", pady=(4, 12))
@@ -214,41 +205,41 @@ class MainWindow(tk.Toplevel):
             except (ValueError, TypeError):
                 pass
 
-        tk.Label(body, text=_("Дата:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10)).grid(row=2, column=0, sticky="w")
+        tk.Label(body, text=_("Дата:"), bg=t["bg_main"], fg=t["text"], font=(FONT, 10)).grid(row=2, column=0, sticky="w")
         self.date_entry = self._entry(body, width=16)
         self.date_entry.insert(0, when.strftime("%Y-%m-%d"))
         self.date_entry.grid(row=3, column=0, sticky="w", pady=(2, 0))
 
-        tk.Label(body, text=_("Время:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10)).grid(
+        tk.Label(body, text=_("Время:"), bg=t["bg_main"], fg=t["text"], font=(FONT, 10)).grid(
             row=2, column=1, sticky="w", padx=(10, 0)
         )
         self.time_entry = self._entry(body, width=10)
         self.time_entry.insert(0, when.strftime("%H:%M"))
         self.time_entry.grid(row=3, column=1, sticky="w", padx=(10, 0), pady=(2, 0))
 
-        tk.Label(body, text=_("ГГГГ-ММ-ДД и ЧЧ:ММ"), bg=WIN_BG, fg=MUTED, font=(FONT, 8)).grid(
+        tk.Label(body, text=_("ГГГГ-ММ-ДД и ЧЧ:ММ"), bg=t["bg_main"], fg=t["muted"], font=(FONT, 8)).grid(
             row=3, column=2, sticky="w", padx=(10, 0), pady=(2, 0)
         )
 
-        tk.Label(body, text=_("Картинка (необязательно):"), bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
+        tk.Label(body, text=_("Картинка (необязательно):"), bg=t["bg_main"], fg=t["text"], font=(FONT, 10, "bold")).grid(
             row=4, column=0, columnspan=3, sticky="w", pady=(12, 0)
         )
-        self._button(body, _("Выбрать файл..."), self._choose_image, PRIMARY, PRIMARY_DARK).grid(
+        self._button(body, _("Выбрать файл..."), self._choose_image, t["primary"], t["primary_dark"]).grid(
             row=5, column=0, sticky="w", pady=(6, 0)
         )
-        tk.Label(body, textvariable=self.image_var, bg=WIN_BG, fg=MUTED, font=(FONT, 8)).grid(
+        tk.Label(body, textvariable=self.image_var, bg=t["bg_main"], fg=t["muted"], font=(FONT, 8)).grid(
             row=5, column=1, columnspan=2, sticky="w", padx=(10, 0), pady=(6, 0)
         )
 
         # --- Стиль ---
-        tk.Label(body, text=_("Стиль стикера:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
+        tk.Label(body, text=_("Стиль стикера:"), bg=t["bg_main"], fg=t["text"], font=(FONT, 10, "bold")).grid(
             row=6, column=0, sticky="w", pady=(12, 0)
         )
         self.style_menu = self._option_menu(body, self.style_var, self._style_labels, width=15)
         self.style_menu.grid(row=7, column=0, sticky="w", pady=(2, 0))
 
         # --- Повтор ---
-        tk.Label(body, text=_("Повтор:"), bg=WIN_BG, fg=TEXT, font=(FONT, 10, "bold")).grid(
+        tk.Label(body, text=_("Повтор:"), bg=t["bg_main"], fg=t["text"], font=(FONT, 10, "bold")).grid(
             row=6, column=1, sticky="w", padx=(10, 0), pady=(12, 0)
         )
         self.repeat_menu = self._option_menu(body, self.repeat_var, self._repeat_labels, width=18)
@@ -257,33 +248,34 @@ class MainWindow(tk.Toplevel):
 
         self.repeat_days_spin = tk.Spinbox(
             body, from_=2, to=999, width=5, textvariable=self.repeat_days_var, justify="center",
-            font=(FONT, 10), bg=PANEL_BG, fg=TEXT, relief="flat", bd=0,
-            buttonbackground=PRIMARY, insertbackground=TEXT, disabledbackground="#EFE3E6",
-            highlightthickness=1, highlightbackground=BORDER, highlightcolor=PRIMARY,
+            font=(FONT, 10), bg=t["panel_bg"], fg=t["text"], relief="flat", bd=0,
+            buttonbackground=t["primary"], insertbackground=t["text"], disabledbackground=t["off"],
+            highlightthickness=1, highlightbackground=t["border"], highlightcolor=t["primary"],
         )
         self.repeat_days_spin.grid(row=7, column=2, sticky="w", padx=(10, 0), pady=(2, 0))
         self._update_repeat_state()
 
-        buttons = tk.Frame(body, bg=WIN_BG)
+        buttons = tk.Frame(body, bg=t["bg_main"])
         buttons.grid(row=8, column=0, columnspan=3, sticky="we", pady=(16, 0))
-        self._button(buttons, _("Редактор"), self._open_manager, PRIMARY, PRIMARY_DARK).pack(side="left")
+        self._button(buttons, _("Редактор"), self._open_manager, t["primary"], t["primary_dark"]).pack(side="left")
 
-        right = tk.Frame(buttons, bg=WIN_BG)
+        right = tk.Frame(buttons, bg=t["bg_main"])
         right.pack(side="right")
-        self._button(right, _("Отмена"), self.destroy, RED, RED_DARK).pack(side="left", padx=(0, 8))
+        self._button(right, _("Отмена"), self.destroy, t["red"], t["red_dark"]).pack(side="left", padx=(0, 8))
         self._button(
-            right, _("Сохранить") if self.editing else _("Создать"), self._save, GREEN, GREEN_DARK
+            right, _("Сохранить") if self.editing else _("Создать"), self._save, t["green"], t["green_dark"]
         ).pack(side="left")
 
     # ---------- фабрики виджетов ----------
     def _header_button(self, parent, text, command, hover):
+        t = self.theme
         button = tk.Button(
-            parent, text=text, command=command, bg=HEADER_BG, fg=TEXT, activebackground=hover,
+            parent, text=text, command=command, bg=t["header_bg"], fg=t["text"], activebackground=hover,
             activeforeground="white", relief="flat", bd=0, font=(FONT, 10, "bold"),
             width=3, cursor="hand2",
         )
         button.bind("<Enter>", lambda e: button.configure(bg=hover, fg="white"))
-        button.bind("<Leave>", lambda e: button.configure(bg=HEADER_BG, fg=TEXT))
+        button.bind("<Leave>", lambda e: button.configure(bg=t["header_bg"], fg=t["text"]))
         return button
 
     def _button(self, parent, text, command, bg, hover, fg="white"):
@@ -297,21 +289,23 @@ class MainWindow(tk.Toplevel):
         return button
 
     def _entry(self, parent, width=16):
+        t = self.theme
         return tk.Entry(
-            parent, width=width, font=(FONT, 10), bg=PANEL_BG, fg=TEXT,
-            relief="flat", bd=0, insertbackground=TEXT,
-            highlightthickness=1, highlightbackground=BORDER, highlightcolor=PRIMARY,
+            parent, width=width, font=(FONT, 10), bg=t["panel_bg"], fg=t["text"],
+            relief="flat", bd=0, insertbackground=t["text"],
+            highlightthickness=1, highlightbackground=t["border"], highlightcolor=t["primary"],
         )
 
     def _option_menu(self, parent, variable, values, width=15):
+        t = self.theme
         menu = tk.OptionMenu(parent, variable, *values)
         menu.configure(
-            bg=PANEL_BG, fg=TEXT, activebackground=PRIMARY, activeforeground="white",
-            relief="flat", bd=0, highlightthickness=1, highlightbackground=BORDER,
+            bg=t["panel_bg"], fg=t["text"], activebackground=t["primary"], activeforeground="white",
+            relief="flat", bd=0, highlightthickness=1, highlightbackground=t["border"],
             font=(FONT, 10), padx=8, pady=4, cursor="hand2", anchor="w", width=width,
         )
         menu["menu"].configure(
-            bg=PANEL_BG, fg=TEXT, activebackground=PRIMARY, activeforeground="white",
+            bg=t["panel_bg"], fg=t["text"], activebackground=t["primary"], activeforeground="white",
             font=(FONT, 10), bd=0,
         )
         return menu

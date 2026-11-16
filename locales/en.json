@@ -57,6 +57,11 @@
   "Язык": "Language",
   "Язык интерфейса": "Interface language",
   "Перезапустите приложение, чтобы применить язык полностью.": "Restart the application to fully apply the language.",
+  "Тема": "Theme",
+  "Тема оформления": "Interface theme",
+  "Розовая": "Pink",
+  "Тёмно-фиолетовая": "Dark purple",
+  "Перезапустите приложение, чтобы применить тему.": "Restart the application to apply the theme.",
 
   "ПРОСРОЧЕНО": "OVERDUE",
   "НАПОМИНАНИЕ": "REMINDER",
