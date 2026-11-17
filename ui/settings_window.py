@@ -8,7 +8,7 @@ except ImportError:  # pragma: no cover
     Image = None
     ImageTk = None
 
-from core import autostart, i18n, settings
+from core import autostart, date_utils, i18n, settings
 from core.i18n import _
 from core.theme import THEME_LABELS, get_theme, get_theme_name, set_theme
 from ui.sticker_window import get_resource_path
@@ -195,6 +195,7 @@ class SettingsWindow(tk.Toplevel):
         self._add_autostart_card()
         self._add_theme_card()
         self._add_language_card()
+        self._add_datetime_card()
 
     def _add_autostart_card(self):
         t = self.theme
@@ -231,6 +232,32 @@ class SettingsWindow(tk.Toplevel):
         self.lang_var = tk.StringVar(value=langs.get(i18n.get_language(), langs["ru"]))
         menu = self._option_menu(card, self.lang_var, list(langs.values()), command=self._on_language_change, width=10)
         menu.pack(side="right", padx=(6, 12))
+
+    def _add_datetime_card(self):
+        card = self._card(_("Формат даты и времени"), _("Формат ввода и отображения (Закройте окно создания, чтобы отобразился новый формат)"))
+
+        holder = tk.Frame(card, bg=self.theme["card_bg"])
+        holder.pack(side="right", padx=(6, 12))
+
+        self.date_format_var = tk.StringVar(value=date_utils.get_date_format())
+        self.time_format_var = tk.StringVar(value=date_utils.get_time_format())
+
+        date_menu = self._option_menu(
+            holder, self.date_format_var, date_utils.DATE_OPTIONS,
+            command=self._on_date_format_change, width=12,
+        )
+        date_menu.pack(side="left", padx=(0, 6))
+        time_menu = self._option_menu(
+            holder, self.time_format_var, date_utils.TIME_OPTIONS,
+            command=self._on_time_format_change, width=6,
+        )
+        time_menu.pack(side="left")
+
+    def _on_date_format_change(self, value):
+        settings.set_value("date_format", value)
+
+    def _on_time_format_change(self, value):
+        settings.set_value("time_format", value)
 
     def _toggle_autostart(self):
         self.autostart_enabled = not self.autostart_enabled

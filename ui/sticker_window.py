@@ -1,7 +1,6 @@
 import os
 import sys
 import tkinter as tk
-from datetime import datetime
 
 try:
     from PIL import Image, ImageTk, ImageOps
@@ -10,7 +9,7 @@ except ImportError:
     ImageTk = None
     ImageOps = None
 
-from core import storage
+from core import date_utils, storage
 from core.i18n import _
 
 DEFAULT_PLACEHOLDER = "assets/default_placeholder.png"
@@ -186,15 +185,8 @@ class StickerWindow(tk.Toplevel):
             )
 
     def _format_datetime(self, value):
-        """Разбирает сохранённую дату-время и возвращает (дата, время)."""
-        if not value:
-            return None, None
-        try:
-            due = datetime.strptime(value, storage.DATETIME_FORMAT)
-            return due.strftime("%d.%m.%Y"), due.strftime("%H:%M")
-        except (ValueError, TypeError):
-            date_part, _, time_part = str(value).partition(" ")
-            return date_part.strip() or None, time_part.strip()
+        """Разбирает сохранённую дату-время и возвращает (дата, время) по настройкам."""
+        return date_utils.format_datetime(value)
 
     def _is_repeating(self):
         return bool(self.repeat) and self.repeat != storage.REPEAT_NONE
@@ -207,24 +199,25 @@ class StickerWindow(tk.Toplevel):
         return "#2E7D32"
 
     def _draw_datetime(self, title_id, w, color):
-        """Рисует дату и время после заголовка. Если в одну строку не влезает —
-        время уходит под дату."""
+        """Рисует дату и время, выравнивая по правому краю (перед крестиком)."""
         date_part, time_part = self._format_datetime(self.datetime_str)
         if not date_part:
             return
 
-        font = ("Segoe UI", 8)
-        x = self.canvas.bbox(title_id)[2] + 10
-        right_limit = w - 30
-
+        font = ("Segoe UI", 9, "bold")
+        
+        x_right = w - 35 
+        
         line = "{}  {}".format(date_part, time_part) if time_part else date_part
-        item = self.canvas.create_text(x, Y_OFFSET + 17, text=line, font=font, fill=color, anchor="w")
+        
+        # Текст (east/правый край)
+        item = self.canvas.create_text(x_right, Y_OFFSET + 17, text=line, font=font, fill=color, anchor="e")
 
-        if self.canvas.bbox(item)[2] > right_limit:
+        if self.canvas.bbox(item)[0] < self.canvas.bbox(title_id)[2] + 15:
             self.canvas.delete(item)
-            self.canvas.create_text(x, Y_OFFSET + 11, text=date_part, font=font, fill=color, anchor="w")
+            self.canvas.create_text(x_right, Y_OFFSET + 11, text=date_part, font=font, fill=color, anchor="e")
             if time_part:
-                self.canvas.create_text(x, Y_OFFSET + 25, text=time_part, font=font, fill=color, anchor="w")
+                self.canvas.create_text(x_right, Y_OFFSET + 25, text=time_part, font=font, fill=color, anchor="e")
 
     def _make_gradient(self, width, height, base_hex, shade_hex):
         """Плавный радиальный градиент: базовый цвет + тень в правом нижнем углу.

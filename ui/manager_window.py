@@ -1,6 +1,5 @@
 import os
 import tkinter as tk
-from datetime import datetime
 from tkinter import ttk
 
 try:
@@ -9,7 +8,7 @@ except ImportError:  # pragma: no cover
     Image = None
     ImageTk = None
 
-from core import storage
+from core import date_utils, storage
 from core.i18n import _
 from core.theme import get_theme
 from ui.sticker_window import get_resource_path
@@ -448,14 +447,7 @@ class ManagerWindow(tk.Toplevel):
         return photo
 
     def _format_datetime(self, value):
-        if not value:
-            return "", ""
-        try:
-            due = datetime.strptime(value, storage.DATETIME_FORMAT)
-            return due.strftime("%d.%m.%Y"), due.strftime("%H:%M")
-        except (ValueError, TypeError):
-            date_part, _, time_part = str(value).partition(" ")
-            return date_part.strip(), time_part.strip()
+        return date_utils.format_datetime(value)
 
     # ---------- перетаскивание ----------
     def _start_move(self, event):

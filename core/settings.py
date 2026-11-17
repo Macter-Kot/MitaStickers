@@ -10,6 +10,8 @@ DEFAULTS = {
     "theme": "pink",
     "language": "ru",
     "autostart": False,
+    "date_format": "YYYY-MM-DD",
+    "time_format": "24h",
 }
 
 

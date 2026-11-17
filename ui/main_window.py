@@ -10,7 +10,7 @@ except ImportError:  # pragma: no cover
     Image = None
     ImageTk = None
 
-from core import storage
+from core import date_utils, storage
 from core.i18n import _
 from core.theme import get_theme
 from ui.sticker_window import get_resource_path
@@ -200,24 +200,23 @@ class MainWindow(tk.Toplevel):
 
         when = datetime.now() + timedelta(minutes=5)
         if self.editing:
-            try:
-                when = datetime.strptime(self.sticker.get("datetime", ""), storage.DATETIME_FORMAT)
-            except (ValueError, TypeError):
-                pass
+            parsed = date_utils.parse_iso(self.sticker.get("datetime", ""))
+            if parsed is not None:
+                when = parsed
 
         tk.Label(body, text=_("Дата:"), bg=t["bg_main"], fg=t["text"], font=(FONT, 10)).grid(row=2, column=0, sticky="w")
         self.date_entry = self._entry(body, width=16)
-        self.date_entry.insert(0, when.strftime("%Y-%m-%d"))
+        self.date_entry.insert(0, date_utils.format_date(when))
         self.date_entry.grid(row=3, column=0, sticky="w", pady=(2, 0))
 
         tk.Label(body, text=_("Время:"), bg=t["bg_main"], fg=t["text"], font=(FONT, 10)).grid(
             row=2, column=1, sticky="w", padx=(10, 0)
         )
-        self.time_entry = self._entry(body, width=10)
-        self.time_entry.insert(0, when.strftime("%H:%M"))
+        self.time_entry = self._entry(body, width=12)
+        self.time_entry.insert(0, date_utils.format_time(when))
         self.time_entry.grid(row=3, column=1, sticky="w", padx=(10, 0), pady=(2, 0))
 
-        tk.Label(body, text=_("ГГГГ-ММ-ДД и ЧЧ:ММ"), bg=t["bg_main"], fg=t["muted"], font=(FONT, 8)).grid(
+        tk.Label(body, text=date_utils.input_hint(), bg=t["bg_main"], fg=t["muted"], font=(FONT, 8)).grid(
             row=3, column=2, sticky="w", padx=(10, 0), pady=(2, 0)
         )
 
@@ -403,16 +402,16 @@ class MainWindow(tk.Toplevel):
             messagebox.showerror(_("Ошибка"), _("Введите текст напоминания."), parent=self)
             return
 
-        raw = "{} {}".format(self.date_entry.get().strip(), self.time_entry.get().strip())
         try:
-            when = datetime.strptime(raw, storage.DATETIME_FORMAT)
+            when = date_utils.parse_input(self.date_entry.get(), self.time_entry.get())
         except ValueError:
             messagebox.showerror(
                 _("Ошибка"),
-                _("Неверный формат даты или времени.\nИспользуйте ГГГГ-ММ-ДД и ЧЧ:ММ."),
+                _("Неверный формат. Ожидается: {}").format(date_utils.input_hint()),
                 parent=self,
             )
             return
+        iso_datetime = date_utils.to_iso(when)
 
         image = self.sticker.get("image") if self.editing else None
         if self.selected_image:
@@ -452,7 +451,7 @@ class MainWindow(tk.Toplevel):
                 self.sticker.get("id"),
                 text=text,
                 image=image,
-                datetime=when.strftime(storage.DATETIME_FORMAT),
+                datetime=iso_datetime,
                 style=style,
                 repeat=repeat,
                 repeat_days=repeat_days,
@@ -462,7 +461,7 @@ class MainWindow(tk.Toplevel):
             storage.add_sticker(
                 text=text,
                 image=image,
-                datetime_str=when.strftime(storage.DATETIME_FORMAT),
+                datetime_str=iso_datetime,
                 status=storage.STATUS_PENDING,
                 style=style,
                 repeat=repeat,

@@ -2,5 +2,7 @@
   "first_run_prompted": false,
   "theme": "pink",
   "language": "ru",
-  "autostart": false
+  "autostart": false,
+  "date_format": "YYYY-MM-DD",
+  "time_format": "24h"
 }

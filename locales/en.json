@@ -63,6 +63,16 @@
   "Тёмно-фиолетовая": "Dark purple",
   "Перезапустите приложение, чтобы применить тему.": "Restart the application to apply the theme.",
 
+  "Формат даты и времени": "Date and time format",
+  "Формат ввода и отображения (Закройте окно создания, чтобы отобразился новый формат)": "Input and display format (Close the creation window to see the new format)",
+  "ГГГГ-ММ-ДД": "YYYY-MM-DD",
+  "ДД-ММ-ГГГГ": "DD-MM-YYYY",
+  "ММ-ДД-ГГГГ": "MM-DD-YYYY",
+  "ЧЧ:ММ": "HH:MM",
+  "ЧЧ:ММ AM/PM": "HH:MM AM/PM",
+  "{} и {}": "{} and {}",
+  "Неверный формат. Ожидается: {}": "Invalid format. Expected: {}",
+
   "ПРОСРОЧЕНО": "OVERDUE",
   "НАПОМИНАНИЕ": "REMINDER",
   "⚠ Дедлайн уже прошёл!": "⚠ The deadline has already passed!",
