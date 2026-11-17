@@ -53,7 +53,7 @@ class SettingsWindow(tk.Toplevel):
             self.autostart_enabled = False
 
         self.overrideredirect(True)
-        self.attributes("-topmost", True)
+        # self.attributes("-topmost", True)
         self.configure(bg=CHROMA_KEY)
         try:
             self.attributes("-transparentcolor", CHROMA_KEY)

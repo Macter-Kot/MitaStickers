@@ -62,6 +62,9 @@ class MainWindow(tk.Toplevel):
     def __init__(self, root, sticker=None, on_saved=None):
         super().__init__(root)
 
+        # Делаем прозрачным - для отрисовки
+        self.attributes("-alpha", 0.0)
+
         self.root = root
         self.theme = get_theme()
         self.sticker = sticker or None
@@ -74,7 +77,7 @@ class MainWindow(tk.Toplevel):
 
         self.title("MitaStickers — " + (_("Редактирование") if self.editing else _("Новый стикер")))
         self.resizable(False, False)
-        self.attributes("-topmost", True)
+        # self.attributes("-topmost", True)
         self.overrideredirect(True)
         self.configure(bg=self.theme["border"])
         self._apply_icon()
@@ -86,7 +89,9 @@ class MainWindow(tk.Toplevel):
 
         self._build_mappings()
         self._build()
-        self._center()
+
+        # Вызываем центрирование с задержкой 50 мс
+        self.after(50, self._center)
 
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.bind("<Escape>", lambda event: self.destroy())
@@ -331,6 +336,9 @@ class MainWindow(tk.Toplevel):
         x = (self.winfo_screenwidth() - width) // 2
         y = (self.winfo_screenheight() - height) // 3
         self.geometry("{}x{}+{}+{}".format(width, height, x, y))
+        
+        # Проявляем окно только после того, как оно встало на место
+        self.attributes("-alpha", 1.0)
 
     # ---------- перетаскивание / окно ----------
     def _make_draggable(self, widget):
