@@ -426,7 +426,7 @@ class ManagerWindow(tk.Toplevel):
         if image_path and str(image_path).strip():
             path = str(image_path)
             if not os.path.isabs(path):
-                path = os.path.join(storage.BASE_DIR, path)
+                path = os.path.join(storage.USER_DIR, path)
         else:
             path = get_resource_path(PLACEHOLDER)
 

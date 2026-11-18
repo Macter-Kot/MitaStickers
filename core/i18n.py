@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 
 from core import settings, storage
 
@@ -16,8 +15,7 @@ _loaded = False
 
 
 def _locales_dir():
-    base = getattr(sys, "_MEIPASS", None) or storage.BASE_DIR
-    return os.path.join(base, "locales")
+    return os.path.join(storage.RESOURCE_DIR, "locales")
 
 
 def _load_catalog(lang):

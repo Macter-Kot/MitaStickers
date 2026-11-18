@@ -54,3 +54,33 @@ MitaStickers/
     ├── manager_window.py   # Редактор напоминаний (картридж-менеджер)
     ├── settings_window.py  # Окно настроек (картридж)
     └── sticker_window.py   # Всплывающее окно-стикер (без рамок)
+
+---
+
+### Запуск
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+### Где хранятся данные
+
+- В режиме разработки (`python main.py`) — в папке `data/` рядом с проектом.
+- В собранном `.exe` — в `%LOCALAPPDATA%\MitaStickers` (постоянное хранение):
+  `stickers.json`, `settings.json` и папка `images/`.
+
+### Сборка в EXE (PyInstaller)
+
+```bash
+pip install pyinstaller
+pyinstaller --noconfirm --windowed --name MitaStickers ^
+  --icon assets/icon.ico ^
+  --add-data "assets;assets" ^
+  --add-data "locales;locales" ^
+  main.py
+```
+
+Флаги `--add-data` обязательны: они кладут `assets` (картридж, логотип, иконки,
+заглушку) и `locales` (словари переводов) внутрь сборки, откуда их читает
+`storage.RESOURCE_DIR` (`sys._MEIPASS`).

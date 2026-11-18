@@ -1,5 +1,4 @@
 import os
-import sys
 import tkinter as tk
 
 try:
@@ -18,13 +17,12 @@ DEFAULT_PLACEHOLDER = "assets/default_placeholder.png"
 def get_resource_path(relative_path):
     """Абсолютный путь к ресурсу — работает и в обычном режиме, и в PyInstaller.
 
-    В собранном .exe файлы кладутся во временную папку sys._MEIPASS, в исходниках
-    ресурсы лежат рядом с проектом (storage.BASE_DIR).
+    В собранном .exe ресурсы лежат во временной папке sys._MEIPASS, в исходниках
+    — в корне проекта. За это отвечает storage.RESOURCE_DIR.
     """
     if os.path.isabs(relative_path):
         return relative_path
-    base = getattr(sys, "_MEIPASS", None) or storage.BASE_DIR
-    return os.path.join(base, relative_path)
+    return os.path.join(storage.RESOURCE_DIR, relative_path)
 
 # --- НАСТРОЙКИ ТЕМ (ЦВЕТА) ---
 # "bg"    - базовый (светлый) цвет бумажки
@@ -264,7 +262,7 @@ class StickerWindow(tk.Toplevel):
         else:
             path = str(image_path)
             if not os.path.isabs(path):
-                path = os.path.join(storage.BASE_DIR, path)
+                path = os.path.join(storage.USER_DIR, path)
 
         # Файл пропал или путь битый — снова откатываемся к заглушке
         if not os.path.exists(path):

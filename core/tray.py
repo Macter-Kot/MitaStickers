@@ -10,8 +10,7 @@ except ImportError:  # pragma: no cover
 from core import storage
 from core.i18n import _
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-ICON_PATH = os.path.join(BASE_DIR, "assets", "default_icon.ico")
+ICON_PATH = os.path.join(storage.RESOURCE_DIR, "assets", "default_icon.ico")
 
 _icon = None
 _root = None

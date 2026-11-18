@@ -1,6 +1,7 @@
 import calendar
 import json
 import os
+import sys
 from datetime import datetime, timedelta
 
 try:
@@ -8,8 +9,33 @@ try:
 except ImportError:  # pragma: no cover
     relativedelta = None
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+APP_NAME = "MitaStickers"
+
+# Собранный PyInstaller EXE распаковывает ресурсы во временную папку sys._MEIPASS
+FROZEN = bool(getattr(sys, "frozen", False))
+
+# Корень исходников/проекта (в EXE это временная папка _MEIPASS)
+PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# Папка только для чтения с ресурсами (assets, locales).
+# В EXE — _MEIPASS, в режиме разработки — корень проекта.
+RESOURCE_DIR = getattr(sys, "_MEIPASS", None) or PROJECT_DIR
+
+# BASE_DIR оставлен для совместимости: это корень ресурсов/проекта.
+BASE_DIR = PROJECT_DIR
+
+# Папка пользовательских данных (для записи):
+#   EXE        -> %LOCALAPPDATA%\MitaStickers
+#   разработка -> <корень проекта>
+if FROZEN:
+    USER_DIR = os.path.join(
+        os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), APP_NAME
+    )
+    DATA_DIR = USER_DIR
+else:
+    USER_DIR = PROJECT_DIR
+    DATA_DIR = os.path.join(PROJECT_DIR, "data")
+
 IMAGES_DIR = os.path.join(DATA_DIR, "images")
 DATA_FILE = os.path.join(DATA_DIR, "stickers.json")
 
