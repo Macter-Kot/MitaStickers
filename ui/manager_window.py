@@ -344,12 +344,12 @@ class ManagerWindow(tk.Toplevel):
         meta.pack(anchor="w", pady=(4, 0))
         tk.Label(
             meta, text=" ".join(part for part in (date_part, time_part) if part),
-            bg=t["card_bg"], fg=t["muted"], font=("Segoe UI", 8),
+            bg=t["card_bg"], fg=t["muted"], font=("Segoe UI", 11),
         ).pack(side="left")
         if sticker.get("repeat", storage.REPEAT_NONE) not in ("", storage.REPEAT_NONE, None):
             tk.Label(
-                meta, text="\u21bb", bg=t["card_bg"], fg=t["green"], font=("Segoe UI", 10, "bold"),
-            ).pack(side="left", padx=(6, 0))
+                meta, text="\u21bb", bg=t["card_bg"], fg=t["green"], font=("Segoe UI", 22, "bold"),
+            ).pack(side="left", padx=(15, 0))
 
         thumb = self._load_thumb(sticker.get("image"))
         if thumb is not None:
@@ -366,10 +366,12 @@ class ManagerWindow(tk.Toplevel):
 
     def _icon_button(self, parent, text, color, command):
         button = tk.Label(
-            parent, text=text, bg=self.theme["card_bg"], fg=color, font=("Segoe UI", 12, "bold"),
-            cursor="hand2", width=2,
+            parent, text=text, bg=self.theme["card_bg"], fg=color, 
+            font=("Segoe UI Symbol", 14), 
+            cursor="hand2", padx=6, # Добавляем отступы по бокам
+            anchor="center"         # Иконка строго по центру
         )
-        button.pack(pady=1)
+        button.pack(pady=2) # Отступ между кнопками
         button.bind("<Button-1>", lambda event: command())
         button.bind("<Enter>", lambda event: button.config(bg=self.theme["panel_bg"]))
         button.bind("<Leave>", lambda event: button.config(bg=self.theme["card_bg"]))
