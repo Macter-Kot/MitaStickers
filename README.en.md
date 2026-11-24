@@ -1,10 +1,10 @@
 # MitaStickers 0.1
 
 <p align="center">
-  <img src="docs/preview.png" alt="MitaStickers Cartridge" width="600"/>
+  <img src="docs/preview.png" alt="MitaStickers Cartridge" width="800"/>
 </p>
 
-<p align="center">
+<p align="center" style="font-size: 33px; font-weight: bold;">
   🌐 <b><a href="README.md">Русский</a></b> | <b>English</b>
 </p>
 
@@ -19,6 +19,25 @@
 *   **Images**: Attach any images to your reminders.
 *   **Autostart**: The program can launch with Windows and stay in the system tray, waiting for the right moment.
 *   **Date formats**: Support for different time formats (24h / 12h AM-PM) and date formats (YYYY-MM-DD, DD-MM-YYYY, MM-DD-YYYY).
+
+### 🖼️ Screenshots:
+
+<table width="100%">
+  <tr>
+    <td align="center" valign="top" width="33%">
+      <b>Creating a sticker</b><br>
+      <img src="docs/screenshot_create_en.png" alt="Creating a sticker" height="260"/>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <b>Sticker</b><br>
+      <img src="docs/screenshot_reminder_en.png" alt="Sticker" height="260"/>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <b>Settings</b><br>
+      <img src="docs/screenshot_settings_en.png" alt="Settings" height="260"/>
+    </td>
+  </tr>
+</table>
 
 ---
 
@@ -44,7 +63,10 @@
 
 ---
 
-## 🛠️ For Developers:
+<details>
+<summary style="font-size: 24px; font-weight: bold; cursor: pointer;">🛠️ For Developers (Click to expand)</summary>
+
+<br>
 
 *If you want to run the project from source code or build it yourself:*
 
@@ -70,15 +92,15 @@ pip install pyinstaller
 
 python -m PyInstaller --noconfirm --onefile --windowed --name MitaStickers --icon assets/icon.ico --add-data "assets;assets" --add-data "locales;locales" main.py
 ```
----
 
 ## 👉 View the Project Structure:
 [Project Structure](PROJECT_STRUCTURE.md)
 
+</details>
+
 ---
 
-## Author
-- [Mactep_KoT_](https://github.com/Macter-Kot)
+## Author: [Mactep_KoT_](https://github.com/Macter-Kot)
 
 ### 💖 Support the Author
 

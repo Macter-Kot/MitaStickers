@@ -1,10 +1,10 @@
 # MitaStickers 0.1
 
 <p align="center">
-  <img src="docs/preview.png" alt="MitaStickers Cartridge" width="600"/>
+  <img src="docs/preview.png" alt="MitaStickers Cartridge" width="800"/>
 </p>
 
-<p align="center">
+<p align="center" style="font-size: 33px; font-weight: bold;">
   🌐 <b>Русский</b> | <b><a href="README.en.md">English</a></b>
 </p>
 
@@ -19,6 +19,25 @@
 *   **Картинки**: Возможность прикреплять к напоминаниям любые изображения.
 *   **Автозагрузка**: Программа может запускаться вместе с Windows и находиться в системном трее, ожидая своего часа.
 *   **Форматы дат**: Поддержка разных форматов времени (24h / 12h AM-PM) и дат (ГГГГ-ММ-ДД, ДД-ММ-ГГГГ, ММ-ДД-ГГГГ).
+
+### 🖼️ Как выглядит программа:
+
+<table width="100%">
+  <tr>
+    <td align="center" valign="top" width="33%">
+      <b>Создание стикера</b><br>
+      <img src="docs/screenshot_create.png" alt="Создание стикера" height="260"/>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <b>Стикер</b><br>
+      <img src="docs/screenshot_reminder.png" alt="Стикер" height="260"/>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <b>Настройки</b><br>
+      <img src="docs/screenshot_settings.png" alt="Настройки" height="260"/>
+    </td>
+  </tr>
+</table>
 
 ---
 
@@ -44,7 +63,10 @@
 
 ---
 
-## 🛠️ Для разработчиков:
+<details>
+<summary style="font-size: 24px; font-weight: bold; cursor: pointer;">🛠️ Для разработчиков (нажмите, чтобы развернуть)</summary>
+
+<br>
 
 *Если вы хотите запустить проект из исходного кода или собрать его самостоятельно:*
 
@@ -70,15 +92,15 @@ pip install pyinstaller
 
 python -m PyInstaller --noconfirm --onefile --windowed --name MitaStickers --icon assets/icon.ico --add-data "assets;assets" --add-data "locales;locales" main.py
 ```
----
 
 ## 👉 Посмотреть структуру проекта:
 [Project Structure](PROJECT_STRUCTURE.md)
 
+</details>
+
 ---
 
-## Автор
-- [Mactep_KoT_](https://github.com/Macter-Kot)
+## Автор: [Mactep_KoT_](https://github.com/Macter-Kot)
 
 ### 💖 Поддержать автора
 
