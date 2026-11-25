@@ -26,7 +26,7 @@
   "Каждый месяц": "Every month",
   "Каждый год": "Every year",
   "Каждые X дней": "Every X days",
-  "Редактор": "Editor",
+  "Редактор": "Edit",
   "Отмена": "Cancel",
   "Создать": "Create",
   "Сохранить": "Save",
@@ -72,6 +72,7 @@
   "ЧЧ:ММ AM/PM": "HH:MM AM/PM",
   "{} и {}": "{} and {}",
   "Неверный формат. Ожидается: {}": "Invalid format. Expected: {}",
+  "Поддержать автора": "Support the author",
 
   "ПРОСРОЧЕНО": "OVERDUE",
   "НАПОМИНАНИЕ": "REMINDER",

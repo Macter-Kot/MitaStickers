@@ -1,6 +1,7 @@
 import os
 import shutil
 import tkinter as tk
+import webbrowser
 from datetime import datetime, timedelta
 from tkinter import filedialog, messagebox
 
@@ -18,6 +19,8 @@ from ui.manager_window import Tooltip
 
 APP_ICON = get_resource_path("assets/icon.ico")
 LOGO = "assets/logo.png"
+
+SUPPORT_URL = "https://yoomoney.ru/fundraise/1LL6Q349MMP.261119"
 
 FONT = "Segoe UI"
 
@@ -270,6 +273,29 @@ class MainWindow(tk.Toplevel):
             right, _("Сохранить") if self.editing else _("Создать"), self._save, t["green"], t["green_dark"]
         ).pack(side="left")
 
+        # Ненавязчивая ссылка-кнопка поддержки автора
+        self._heart_photo = self._load_heart(16)
+        if self._heart_photo is not None:
+            support = tk.Label(
+                body, text="  " + _("Поддержать автора"), image=self._heart_photo, compound="left",
+                bg=t["bg_main"], fg=t["muted"], font=(FONT, 9), cursor="hand2",
+            )
+        else:
+            support = tk.Label(
+                body, text="\u2764\ufe0f " + _("Поддержать автора"),
+                bg=t["bg_main"], fg=t["muted"], font=(FONT, 9), cursor="hand2",
+            )
+        support.grid(row=9, column=0, columnspan=3, sticky="e", pady=(8, 0))
+        support.bind("<Button-1>", lambda event: self._open_support())
+        support.bind("<Enter>", lambda e: support.configure(fg=t["green"], font=(FONT, 9, "bold")))
+        support.bind("<Leave>", lambda e: support.configure(fg=t["muted"], font=(FONT, 9)))
+
+    def _open_support(self):
+        try:
+            webbrowser.open(SUPPORT_URL)
+        except Exception:
+            pass
+
     # ---------- фабрики виджетов ----------
     def _header_button(self, parent, text, command, hover):
         t = self.theme
@@ -313,6 +339,21 @@ class MainWindow(tk.Toplevel):
             font=(FONT, 10), bd=0,
         )
         return menu
+
+    def _load_heart(self, height=16):
+        if Image is None or ImageTk is None:
+            return None
+        path = get_resource_path("assets/support_heart.png")
+        if not os.path.exists(path):
+            return None
+        try:
+            image = Image.open(path).convert("RGBA")
+            width = max(1, round(image.width * height / image.height))
+            resample = getattr(Image, "LANCZOS", getattr(Image, "BICUBIC", 3))
+            image = image.resize((width, height), resample)
+            return ImageTk.PhotoImage(image)
+        except (OSError, ValueError):
+            return None
 
     def _load_logo(self, height):
         if Image is None or ImageTk is None:
