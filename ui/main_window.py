@@ -275,6 +275,8 @@ class MainWindow(tk.Toplevel):
 
         # Ненавязчивая ссылка-кнопка поддержки автора
         self._heart_photo = self._load_heart(16)
+        self._heart_photo_hover = self._load_heart(20)
+
         if self._heart_photo is not None:
             support = tk.Label(
                 body, text="  " + _("Поддержать автора"), image=self._heart_photo, compound="left",
@@ -287,8 +289,19 @@ class MainWindow(tk.Toplevel):
             )
         support.grid(row=9, column=0, columnspan=3, sticky="e", pady=(8, 0))
         support.bind("<Button-1>", lambda event: self._open_support())
-        support.bind("<Enter>", lambda e: support.configure(fg=t["green"], font=(FONT, 9, "bold")))
-        support.bind("<Leave>", lambda e: support.configure(fg=t["muted"], font=(FONT, 9)))
+
+        def on_support_enter(e):
+            if self._heart_photo_hover is not None:
+                support.configure(image=self._heart_photo_hover)
+            support.configure(fg=t["green"], font=(FONT, 9, "bold"))
+
+        def on_support_leave(e):
+            if self._heart_photo is not None:
+                support.configure(image=self._heart_photo)
+            support.configure(fg=t["muted"], font=(FONT, 9))
+
+        support.bind("<Enter>", on_support_enter)
+        support.bind("<Leave>", on_support_leave)
 
     def _open_support(self):
         try:
